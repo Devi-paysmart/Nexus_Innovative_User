@@ -1,0 +1,127 @@
+@import "tailwindcss";
+
+/* Class-based dark mode (driven by DarkModeContext) instead of the
+   default media-query-only behavior in Tailwind v4 */
+@custom-variant dark (&:where(.dark, .dark *));
+
+@import "@fontsource/playfair-display/500.css";
+@import "@fontsource/playfair-display/600.css";
+@import "@fontsource/playfair-display/700.css";
+@import "@fontsource/inter/400.css";
+@import "@fontsource/inter/500.css";
+@import "@fontsource/inter/600.css";
+
+/* ---------------------------------------------------------
+   Design tokens — single source of truth for the brand system.
+   Tailwind v4 reads this @theme block and generates utilities
+   like bg-ink, text-gold, font-display, shadow-luxe, etc.
+--------------------------------------------------------- */
+@theme {
+  --color-ink: #0f172a;
+  --color-ink-soft: #1e293b;
+  --color-slate: #111827;
+
+  --color-gold: #d4af37;
+  --color-gold-deep: #c9a227;
+  --color-gold-light: #e9cf7a;
+
+  --color-paper: #fafafa;
+  --color-cloud: #f8fafc;
+
+  --font-display: "Playfair Display", "Times New Roman", serif;
+  --font-body: "Inter", system-ui, sans-serif;
+
+  --shadow-luxe: 0 20px 60px -15px rgba(15, 23, 42, 0.18);
+  --shadow-luxe-sm: 0 10px 30px -10px rgba(15, 23, 42, 0.15);
+  --shadow-gold-glow: 0 8px 30px -8px rgba(212, 175, 55, 0.45);
+
+  --animate-marquee: marquee 28s linear infinite;
+  --animate-float: float 6s ease-in-out infinite;
+}
+
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-14px); }
+}
+
+@keyframes particle-float {
+  0%, 100% { transform: translate(0, 0); opacity: 0.3; }
+  25% { transform: translate(10px, -20px); opacity: 0.7; }
+  50% { transform: translate(-8px, -35px); opacity: 0.5; }
+  75% { transform: translate(12px, -15px); opacity: 0.6; }
+}
+
+/* ---------------------------------------------------------
+   Base layer
+--------------------------------------------------------- */
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-paper text-ink font-body antialiased;
+    font-feature-settings: "ss01" 1;
+  }
+
+  .dark body,
+  html.dark body {
+    @apply bg-ink text-paper;
+  }
+
+  h1, h2, h3, h4 {
+    @apply font-display text-ink;
+    letter-spacing: -0.01em;
+  }
+
+  ::selection {
+    background: var(--color-gold);
+    color: var(--color-ink);
+  }
+
+  /* Slim, brand-toned scrollbar */
+  ::-webkit-scrollbar {
+    width: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: var(--color-paper);
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--color-gold-deep);
+    border-radius: 999px;
+  }
+
+  /* Respect reduced-motion preferences across the whole site */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+@layer utilities {
+  .eyebrow {
+    @apply font-body text-xs font-medium uppercase tracking-[0.22em] text-gold-deep;
+  }
+
+  .glass {
+    @apply bg-white/70 backdrop-blur-xl border border-white/40;
+  }
+
+  .glass-dark {
+    @apply bg-ink/70 backdrop-blur-xl border border-white/10;
+  }
+
+  .dark .glass {
+    background-color: rgba(15, 23, 42, 0.75) !important;
+    border-color: rgba(255, 255, 255, 0.08) !important;
+  }
+}
