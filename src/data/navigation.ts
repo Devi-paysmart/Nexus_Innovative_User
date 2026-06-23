@@ -13,7 +13,7 @@ export const primaryNav: NavLink[] = [
 ];
 
 export const categoryLinks: NavLink[] = [
-  { label: "Welcome Gifts", href: "/collections/tech-gifts" },
+  { label: "Welcome Gifts", href: "/collections/welcome-Gifts" },
   { label: "Festive Gifts", href: "/collections/festive-gifts" },
   { label: "Tech Gifts", href: "/collections/tech-gifts" },
   { label: "Sustainable Gifts", href: "/collections/sustainable-gifts" },

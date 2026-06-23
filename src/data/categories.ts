@@ -25,8 +25,8 @@ export const categories: Category[] = [
     tagline: "First impressions that last",
     description:
       "Curated onboarding experiences designed to make every new hire feel valued from day one.",
-    coverImage: img("photo-1589156280159-27698a70f29e"),
-    cardImage: img("photo-1589156280159-27698a70f29e", 800),
+    coverImage: "/welcome-gifts.jpg",
+    cardImage: "/welcome-gifts.jpg",
     products: [
       {
         id: "wk-1",
@@ -72,36 +72,36 @@ export const categories: Category[] = [
     tagline: "Celebrate every occasion",
     description:
       "Luxury hampers and festive collections that turn seasonal gifting into a memorable brand moment.",
-    coverImage: img("photo-1549465220-1a8b9238cd48"),
-    cardImage: img("photo-1549465220-1a8b9238cd48", 800),
+    coverImage: "/festiva.jpg",
+    cardImage: "/festiva.jpg",
     products: [
       {
         id: "fg-1",
         title: "Diwali Heritage Hamper",
         description:
           "Artisan sweets, scented candles, brass diya set, and premium dry fruits presented in a lacquered gift box with custom brand sleeve.",
-        image: img("photo-1507089947368-19c1da9775ae"),
+        image: "/fes-diw.jpg",
       },
       {
         id: "fg-2",
         title: "Festive Glow Collection",
         description:
           "Soy wax candles, botanical incense, gourmet chocolates, and a hand-tied ribbon box ideal for client appreciation during festivals.",
-        image: img("photo-1514432324607-a09d9b4aefdd"),
+        image: "/fes-eid.jpg",
       },
       {
         id: "fg-3",
         title: "Corporate Celebration Box",
         description:
           "Curated assortment of premium mithai, decorative lanterns, and a personalized greeting card in gold-foil packaging.",
-        image: img("photo-1549465220-1a8b9238cd48"),
+        image: "/fes-xmas.jpg",
       },
       {
         id: "fg-4",
         title: "Winter Warmth Hamper",
         description:
           "Hot chocolate set, wool throw, scented candle trio, and festive cookies in a reusable wooden crate with laser-engraved logo.",
-        image: img("photo-1556911220-e15b29be8c8f"),
+        image: "/fes-ligh.jpg",
       },
     ],
   },
@@ -126,14 +126,14 @@ export const categories: Category[] = [
         title: "MagSafe Charging Set",
         description:
           "Wireless charging pad, magnetic phone stand, and braided USB-C cable packaged in a sleek matte-black gift box.",
-        image: img("photo-1611532736597-de2d4265fba3"),
+        image: "/tech-char.jpg",
       },
       {
         id: "tg-3",
-        title: "Smart Desk Hub",
+        title: "Wireless Keyboard & Mouse Combo",
         description:
-          "Multi-port USB hub, cable organizer, and ambient desk lamp with your brand colors integrated into the product finish.",
-        image: img("photo-1527864550417-7fd91fc51a46"),
+          "Stylish wireless keyboard and mouse set with honeycomb keycaps, gradient color design, and silent-click technology — perfect for a vibrant branded desk setup.",
+        image: "/tech-key.jpg",
       },
       {
         id: "tg-4",
@@ -150,36 +150,36 @@ export const categories: Category[] = [
     tagline: "Purpose-driven gifting",
     description:
       "Eco-conscious collections that align your brand with sustainability without compromising on premium quality.",
-    coverImage: img("photo-1530595467537-0b5996c41f2d"),
-    cardImage: img("photo-1530595467537-0b5996c41f2d", 800),
+    coverImage: "/sustain.jpg",
+    cardImage: "/sustain.jpg",
     products: [
       {
         id: "sg-1",
-        title: "Bamboo Essentials Set",
+        title: "Handcrafted Wooden Mug Set",
         description:
-          "Bamboo cutlery, reusable straw kit, and cork-bound notebook in recycled kraft packaging with soy-ink brand printing.",
-        image: img("photo-1612817288484-6f916006741a"),
+          "Hand-carved wooden mugs with textured exterior and smooth natural interior — an artisan eco-friendly gift that celebrates sustainable craftsmanship.",
+        image: "/sus-mug.jpg",
       },
       {
         id: "sg-2",
-        title: "Desk Garden Kit",
+        title: "Bamboo Toothbrush Collection",
         description:
-          "Mini terrarium, seed packets, ceramic planter, and care guide — a living gift that grows with your team.",
-        image: img("photo-1517594422361-5eeb8ae275a9"),
+          "Set of biodegradable bamboo toothbrushes in recycled kraft packaging — a thoughtful zero-waste corporate gift promoting sustainable daily habits.",
+        image: "/sus-too.jpg",
       },
       {
         id: "sg-3",
-        title: "Eco Notebook Collection",
+        title: "Artisan Ceramic Vase Duo",
         description:
-          "Stone-paper notebooks, plantable seed pencils, and a recycled cotton tote with water-based logo print.",
-        image: img("photo-1514432324607-a09d9b4aefdd"),
+          "Minimalist abstract ceramic vases with matte earth-tone finish and gold accent — a sculptural desk piece that blends art with sustainability.",
+        image: "/sus-tra.jpg",
       },
       {
         id: "sg-4",
-        title: "Zero-Waste Starter Pack",
+        title: "Decorative Elephant Figurines",
         description:
-          "Stainless steel bottle, beeswax wraps, and organic cotton produce bags in compostable gift wrapping.",
-        image: img("photo-1605264964528-06403738d6dc"),
+          "Elegant white resin elephant pair with modern minimalist design — a charming desk accessory symbolizing strength, wisdom, and good fortune.",
+        image: "/sus-ele.jpg",
       },
     ],
   },
@@ -189,8 +189,8 @@ export const categories: Category[] = [
     tagline: "Choice, delivered elegantly",
     description:
       "Digital and physical reward cards presented with the same premium touch as physical gifts.",
-    coverImage: img("photo-1556742049-0cfed4f6a45d"),
-    cardImage: img("photo-1556742049-0cfed4f6a45d", 800),
+    coverImage: "/vouchers.jpg",
+    cardImage: "/vouchers.jpg",
     products: [
       {
         id: "vc-1",
@@ -240,17 +240,17 @@ export const categories: Category[] = [
       },
       {
         id: "pg-2",
-        title: "Heritage Timepiece Box",
+        title: "Luxury Rose-Gold Timepiece",
         description:
-          "Swiss-movement watch with custom case back engraving, presented in a lacquered box with silk lining.",
-        image: img("photo-1523275335684-37898b6baf30"),
+          "Elegant rose-gold stainless steel watch with midnight blue dial, Roman numeral markers, day-date display, and a premium presentation box — a timeless gift for top executives.",
+        image: "/prem-watch.jpg",
       },
       {
         id: "pg-3",
-        title: "Connoisseur Collection",
+        title: "Floral Candle Gift Box",
         description:
-          "Single-origin coffee, crystal decanter set, and artisan chocolates in a hand-finished mahogany gift crate.",
-        image: img("photo-1549465220-1a8b9238cd48"),
+          "Handcrafted scented candle nestled with fresh florals and succulents in a round wooden keepsake box — a luxurious gesture that leaves a lasting impression.",
+        image: "/pre-flowe.jpg",
       },
       {
         id: "pg-4",

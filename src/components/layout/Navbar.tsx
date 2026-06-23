@@ -1,14 +1,16 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
-import { Menu, X, ChevronDown } from "lucide-react";
+import { Menu, X, ChevronDown, ShoppingBag } from "lucide-react";
 import { primaryNav, categoryLinks } from "../../data/navigation";
 import { cn } from "../../utils/cn";
+import { useCart } from "../../context/CartContext";
 
 export function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [megaOpen, setMegaOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { totalItems } = useCart();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 24);
@@ -95,20 +97,18 @@ export function Navbar() {
 
         {/* Actions */}
         <div className="flex items-center gap-2">
-          {/* <button
-            aria-label="Search"
-            onClick={() => setSearchOpen((s) => !s)}
-            className="rounded-full p-2.5 text-ink/70 dark:text-paper/70 transition-colors hover:bg-ink/5 dark:hover:bg-paper/5 hover:text-gold-deep dark:hover:text-gold"
+          <Link
+            to="/cart"
+            aria-label="View cart"
+            className="relative rounded-full p-2.5 text-ink/70 dark:text-paper/70 transition-colors hover:bg-ink/5 dark:hover:bg-paper/5 hover:text-gold-deep dark:hover:text-gold"
           >
-            <Search size={18} />
-          </button> */}
-          {/* <button
-            aria-label="Toggle dark mode"
-            onClick={toggle}
-            className="rounded-full p-2.5 text-ink/70 dark:text-paper/70 transition-colors hover:bg-ink/5 dark:hover:bg-paper/5 hover:text-gold-deep dark:hover:text-gold"
-          >
-            {isDark ? <Sun size={18} /> : <Moon size={18} />}
-          </button> */}
+            <ShoppingBag size={18} />
+            {totalItems > 0 && (
+              <span className="absolute -right-0.5 -top-0.5 flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-gold text-[10px] font-bold text-ink px-1 shadow-sm">
+                {totalItems > 99 ? "99+" : totalItems}
+              </span>
+            )}
+          </Link>
           <button
             aria-label="Open menu"
             onClick={() => setMobileOpen(true)}
@@ -163,6 +163,19 @@ export function Navbar() {
                   {link.label}
                 </Link>
               ))}
+              <Link
+                to="/cart"
+                onClick={() => setMobileOpen(false)}
+                className="rounded-xl px-3 py-3 text-sm font-medium text-ink/80 dark:text-paper/80 hover:bg-gold/10 dark:hover:bg-gold/20 hover:text-gold-deep dark:hover:text-gold flex items-center gap-2"
+              >
+                <ShoppingBag size={16} />
+                Cart
+                {totalItems > 0 && (
+                  <span className="ml-auto flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-gold text-[10px] font-bold text-ink px-1">
+                    {totalItems}
+                  </span>
+                )}
+              </Link>
             </motion.div>
           </motion.div>
         )}

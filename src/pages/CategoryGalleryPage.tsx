@@ -1,23 +1,37 @@
 import { useState, useEffect } from "react";
 import { Link, useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Plus, Check } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
 import { getCategoryBySlug } from "../data/categories";
 import type { Product } from "../data/categories";
 import { ProductDetailModal } from "../components/gallery/GalleryComponents";
 import { PageTransition } from "../components/common/PageTransition";
+import { useCart } from "../context/CartContext";
 
 export function CategoryGalleryPage() {
   const { category: slug } = useParams<{ category: string }>();
   const navigate = useNavigate();
+  const { addToCart } = useCart();
+  const [addedIds, setAddedIds] = useState<Set<string>>(new Set());
 
-  useEffect(() => {
-    if (slug === "welcome-Gifts") {
-      navigate("/collections/tech-gifts", { replace: true });
-    }
-  }, [slug, navigate]);
+
+
 
   const category = getCategoryBySlug(slug ?? "");
   const [selected, setSelected] = useState<Product | null>(null);
+
+  const handleAddToCart = (e: React.MouseEvent, product: Product) => {
+    e.stopPropagation();
+    addToCart(product);
+    setAddedIds((prev) => new Set(prev).add(product.id));
+    setTimeout(() => {
+      setAddedIds((prev) => {
+        const next = new Set(prev);
+        next.delete(product.id);
+        return next;
+      });
+    }, 1400);
+  };
 
   if (!category) {
     return (
@@ -51,7 +65,13 @@ export function CategoryGalleryPage() {
               </h1>
               <p className="mt-4 max-w-2xl text-ink/60 dark:text-paper/60">{category.description}</p>
             </div>
-            <div className="flex-shrink-0">
+            <div className="flex items-center gap-3 flex-shrink-0">
+              <Link
+                to="/cart"
+                className="inline-flex items-center gap-2 rounded-full border border-ink/15 dark:border-paper/15 px-5 py-3 text-sm font-medium text-ink/70 dark:text-paper/70 transition-all hover:border-gold hover:text-gold-deep dark:hover:text-gold"
+              >
+                View Cart
+              </Link>
               <Link
                 to="/contact"
                 className="inline-flex items-center gap-2 rounded-full bg-gold text-ink px-6 py-3.5 text-sm font-medium transition-all hover:bg-gold-deep dark:hover:bg-gold-light hover:shadow-gold-glow cursor-pointer shadow-luxe-sm"
@@ -62,33 +82,86 @@ export function CategoryGalleryPage() {
           </div>
 
           <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
-            {category.products.map((product) => (
-              <div
-                key={product.id}
-                className="group flex flex-col overflow-hidden rounded-3xl bg-cloud shadow-luxe-sm dark:bg-ink-soft transition-transform duration-300 hover:-translate-y-1.5"
-              >
-                <div className="relative aspect-[4/3] overflow-hidden cursor-pointer" onClick={() => setSelected(product)}>
-                  <img
-                    src={product.image}
-                    alt={product.title}
-                    className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                  />
-                  <div className="absolute inset-0 bg-ink/0 transition-colors group-hover:bg-ink/10" />
+            {category.products.map((product) => {
+              const justAdded = addedIds.has(product.id);
+              return (
+                <div
+                  key={product.id}
+                  className="group flex flex-col overflow-hidden rounded-3xl bg-cloud shadow-luxe-sm dark:bg-ink-soft transition-transform duration-300 hover:-translate-y-1.5"
+                >
+                  <div className="relative aspect-[4/3] overflow-hidden cursor-pointer" onClick={() => setSelected(product)}>
+                    <img
+                      src={product.image}
+                      alt={product.title}
+                      className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    />
+                    <div className="absolute inset-0 bg-ink/0 transition-colors group-hover:bg-ink/10" />
+
+                    {/* Add to Cart button */}
+                    <button
+                      onClick={(e) => handleAddToCart(e, product)}
+                      className={`absolute bottom-3 right-3 flex items-center gap-1.5 rounded-full px-3.5 py-2.5 text-xs font-semibold shadow-luxe-sm backdrop-blur-sm transition-all duration-300 ${
+                        justAdded
+                          ? "bg-emerald-500 text-white scale-105"
+                          : "bg-gold/90 text-ink hover:bg-gold hover:scale-110 hover:shadow-gold-glow opacity-0 group-hover:opacity-100"
+                      }`}
+                      aria-label={`Add ${product.title} to cart`}
+                    >
+                      <AnimatePresence mode="wait">
+                        {justAdded ? (
+                          <motion.span
+                            key="check"
+                            initial={{ scale: 0, rotate: -90 }}
+                            animate={{ scale: 1, rotate: 0 }}
+                            exit={{ scale: 0 }}
+                            className="flex items-center gap-1"
+                          >
+                            <Check size={14} /> Added
+                          </motion.span>
+                        ) : (
+                          <motion.span
+                            key="plus"
+                            initial={{ scale: 0 }}
+                            animate={{ scale: 1 }}
+                            exit={{ scale: 0 }}
+                            className="flex items-center gap-1"
+                          >
+                            <Plus size={14} /> Add to Cart
+                          </motion.span>
+                        )}
+                      </AnimatePresence>
+                    </button>
+                  </div>
+                  <div className="flex flex-1 flex-col p-6">
+                    <h3 className="font-display text-xl text-ink dark:text-paper">
+                      {product.title}
+                    </h3>
+                    <p className="mt-3 text-sm leading-relaxed text-ink/65 dark:text-paper/65 flex-1">
+                      {product.description}
+                    </p>
+                    {/* Mobile-visible add button */}
+                    <button
+                      onClick={(e) => handleAddToCart(e, product)}
+                      className={`mt-4 flex items-center justify-center gap-2 rounded-full py-2.5 text-sm font-medium transition-all lg:hidden ${
+                        justAdded
+                          ? "bg-emerald-500 text-white"
+                          : "bg-gold/15 text-gold-deep hover:bg-gold/25"
+                      }`}
+                    >
+                      {justAdded ? (
+                        <><Check size={15} /> Added</>
+                      ) : (
+                        <><Plus size={15} /> Add to Cart</>
+                      )}
+                    </button>
+                  </div>
                 </div>
-                <div className="flex flex-1 flex-col p-6">
-                  <h3 className="font-display text-xl text-ink dark:text-paper">
-                    {product.title}
-                  </h3>
-                  <p className="mt-3 text-sm leading-relaxed text-ink/65 dark:text-paper/65 flex-1">
-                    {product.description}
-                  </p>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           <p className="mt-12 text-center text-sm text-ink/40 dark:text-paper/40">
-            Click any image to view details in full resolution
+            Click any image to view details · Use the + button to add to your cart
           </p>
         </div>
       </div>

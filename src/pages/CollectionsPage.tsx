@@ -58,7 +58,7 @@ export function CollectionsPage() {
             {filtered.flatMap((cat) =>
               cat.products.map((product, i) => (
                 <SectionReveal key={product.id} delay={(i % 3) * 0.05}>
-                  <Link to={cat.slug === "welcome-Gifts" ? "/collections/tech-gifts" : `/collections/${cat.slug}`} className="group mb-6 block break-inside-avoid">
+                  <Link to={`/collections/${cat.slug}`} className="group mb-6 block break-inside-avoid">
                     <motion.div whileHover={{ y: -4 }} className="overflow-hidden rounded-2xl shadow-luxe-sm">
                       <img
                         src={product.image}

@@ -205,7 +205,7 @@ export function HeroSection() {
                         ref={sublineRef}
                         className="mt-6 max-w-lg text-base leading-relaxed text-ink/60 dark:text-paper/60 sm:text-lg"
                     >
-                        From ₹1,000 utility gifts to ₹5 lakh executive hampers — we ensure
+                        From ₹1,000 utility gifts to premium executive hampers — we ensure
                         gifting becomes strategic differentiation for your brand, not an
                         outsourced function.
                     </p>

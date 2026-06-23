@@ -8,7 +8,7 @@ import { SectionReveal } from "../common/SectionReveal";
 export function CategoryGrid() {
   const Card = ({ cat }: { cat: Category }) => (
     <div className="w-[280px] sm:w-[340px] shrink-0">
-      <Link to={cat.slug === "welcome-Gifts" ? "/collections/tech-gifts" : `/collections/${cat.slug}`} className="group block">
+      <Link to={`/collections/${cat.slug}`} className="group block">
         <motion.article
           whileHover={{ y: -6 }}
           transition={{ duration: 0.35 }}

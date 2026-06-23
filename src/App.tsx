@@ -3,6 +3,7 @@ import { useLocation } from "react-router-dom";
 import { AnimatePresence } from "framer-motion";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { DarkModeProvider } from "./context/DarkModeContext";
+import { CartProvider } from "./context/CartContext";
 import { MainLayout } from "./components/layout/MainLayout";
 import { PageTransition } from "./components/common/PageTransition";
 import { HeroSection } from "./components/sections/HeroSection";
@@ -19,6 +20,7 @@ import { AboutPage } from "./pages/AboutPage";
 import { TestimonialsPage } from "./pages/TestimonialsPage";
 import { ContactPage } from "./pages/ContactPage";
 import { CareersPage } from "./pages/CareersPage";
+import { CartPage } from "./pages/CartPage";
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -60,6 +62,7 @@ function AnimatedRoutes() {
         <Route path="/testimonials" element={<TestimonialsPage />} />
         <Route path="/contact" element={<ContactPage />} />
         <Route path="/careers" element={<CareersPage />} />
+        <Route path="/cart" element={<CartPage />} />
       </Routes>
     </AnimatePresence>
   );
@@ -68,12 +71,14 @@ function AnimatedRoutes() {
 function App() {
   return (
     <DarkModeProvider>
-      <BrowserRouter>
-        <ScrollToTop />
-        <MainLayout>
-          <AnimatedRoutes />
-        </MainLayout>
-      </BrowserRouter>
+      <CartProvider>
+        <BrowserRouter>
+          <ScrollToTop />
+          <MainLayout>
+            <AnimatedRoutes />
+          </MainLayout>
+        </BrowserRouter>
+      </CartProvider>
     </DarkModeProvider>
   );
 }

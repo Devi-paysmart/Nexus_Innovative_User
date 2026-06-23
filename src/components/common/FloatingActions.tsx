@@ -30,7 +30,8 @@ export function FloatingActions() {
 
   const shouldHideEnquireButton =
     (location.pathname.startsWith("/collections/") && location.pathname !== "/collections") ||
-    location.pathname === "/contact";
+    location.pathname === "/contact" ||
+    location.pathname === "/cart";
 
   return (
     <>
