@@ -216,41 +216,43 @@ function CartEnquiryModal({
   const quantityValue = watch("quantity") || "";
   const onSubmit = async (data: EnquiryForm) => {
     try {
-      for (const item of cartItems) {
-        const payload = {
-          product_id: Number(item.product.id),
-          name: data.name,
-          email: data.email,
-          company_name: data.company,
-          mobile: data.mobile,
-          city: data.city,
-          budget: data.budget,
-          gifting_for: data.giftingFor,
-          additional_information: [
-            data.notes ? `Notes: ${data.notes}` : "",
-            `Quantity option: ${data.quantity}`
-          ].filter(Boolean).join("\n"),
-          quantity: Number(item.quantity)
-        };
+      const itemsPayload = cartItems.map((item) => ({
+        product_id: Number(item.product.id),
+        quantity: Number(item.quantity),
+      }));
 
-        const response = await fetch(
-          `${API_BASE_URL}/api/v1/user/products/product_enquiry`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "X-API-Key": API_KEY,
-            },
-            body: JSON.stringify(payload),
-          }
-        );
+      const payload = {
+        items: itemsPayload,
+        name: data.name,
+        email: data.email,
+        company_name: data.company,
+        mobile: data.mobile,
+        city: data.city,
+        budget: data.budget,
+        gifting_for: data.giftingFor,
+        additional_information: [
+          data.notes ? `Notes: ${data.notes}` : "",
+          `Quantity option: ${data.quantity}`
+        ].filter(Boolean).join("\n")
+      };
 
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => null);
-          throw new Error(
-            errorData?.detail || `Server Error (${response.status})`
-          );
+      const response = await fetch(
+        `${API_BASE_URL}/api/v1/user/products/product_enquiry`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-API-Key": API_KEY,
+          },
+          body: JSON.stringify(payload),
         }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null);
+        throw new Error(
+          errorData?.detail || `Server Error (${response.status})`
+        );
       }
 
       setSubmitted(true);
