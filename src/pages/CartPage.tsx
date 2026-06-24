@@ -435,7 +435,6 @@ function CartEnquiryModal({
                   setValue("giftingFor", val, { shouldValidate: true })
                 }
                 error={errors.giftingFor?.message}
-                isModalVariant={true}
               />
             </div>
             <div className="col-span-2 sm:col-span-1">
@@ -456,7 +455,6 @@ function CartEnquiryModal({
                   setValue("quantity", val, { shouldValidate: true })
                 }
                 error={errors.quantity?.message}
-                isModalVariant={true}
               />
             </div>
             <div className="col-span-2">
