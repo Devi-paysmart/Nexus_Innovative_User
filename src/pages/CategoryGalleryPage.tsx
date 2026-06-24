@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, Plus, Check } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
-import { getCategoryBySlug } from "../data/categories";
+import { useCategories } from "../context/CategoriesContext";
 import type { Product } from "../data/categories";
 import { ProductDetailModal } from "../components/gallery/GalleryComponents";
 import { PageTransition } from "../components/common/PageTransition";
@@ -13,12 +13,59 @@ export function CategoryGalleryPage() {
   const navigate = useNavigate();
   const { addToCart } = useCart();
   const [addedIds, setAddedIds] = useState<Set<string>>(new Set());
-
-
-
+  const { getCategoryBySlug, loading } = useCategories();
 
   const category = getCategoryBySlug(slug ?? "");
   const [selected, setSelected] = useState<Product | null>(null);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [fetchingProducts, setFetchingProducts] = useState(false);
+
+  useEffect(() => {
+    if (!category) return;
+
+    const fetchCategoryProducts = async () => {
+      setFetchingProducts(true);
+      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
+      const API_KEY = import.meta.env.VITE_CLIENT_API_KEY;
+
+      try {
+        const response = await fetch(
+          `${API_BASE_URL}/api/v1/user/products/list_category_products?category_id=${category.id}`,
+          {
+            method: "GET",
+            headers: {
+              "Content-Type": "application/json",
+              "X-API-Key": API_KEY || "",
+            },
+          }
+        );
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => null);
+          throw new Error(errorData?.detail || `Server error (${response.status})`);
+        }
+
+        const data = await response.json();
+        const dbProducts = data.products || [];
+        const mappedProducts: Product[] = dbProducts
+          .filter((p: any) => p.status === "active")
+          .map((p: any) => ({
+            id: String(p.id),
+            title: p.name,
+            description: p.description,
+            image: p.image_url || (p.images && p.images[0]) || "/sus-mug.jpg",
+          }));
+
+        setProducts(mappedProducts);
+      } catch (err) {
+        console.error("Failed to fetch category products:", err);
+      } finally {
+        setFetchingProducts(false);
+      }
+    };
+
+    fetchCategoryProducts();
+  }, [category]);
 
   const handleAddToCart = (e: React.MouseEvent, product: Product) => {
     e.stopPropagation();
@@ -32,6 +79,16 @@ export function CategoryGalleryPage() {
       });
     }, 1400);
   };
+
+  if (loading) {
+    return (
+      <PageTransition>
+        <div className="flex min-h-[60vh] flex-col items-center justify-center pt-32">
+          <p className="font-display text-2xl text-ink/40 animate-pulse">Loading collection...</p>
+        </div>
+      </PageTransition>
+    );
+  }
 
   if (!category) {
     return (
@@ -74,6 +131,7 @@ export function CategoryGalleryPage() {
               </Link>
               <Link
                 to="/contact"
+                state={{ categoryId: category.id }}
                 className="inline-flex items-center gap-2 rounded-full bg-gold text-ink px-6 py-3.5 text-sm font-medium transition-all hover:bg-gold-deep dark:hover:bg-gold-light hover:shadow-gold-glow cursor-pointer shadow-luxe-sm"
               >
                 Enquire
@@ -81,8 +139,18 @@ export function CategoryGalleryPage() {
             </div>
           </div>
 
-          <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
-            {category.products.map((product) => {
+          {fetchingProducts ? (
+            <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
+              {[1, 2, 3].map((n) => (
+                <div
+                  key={n}
+                  className="w-full aspect-[4/3] rounded-3xl bg-ink/5 dark:bg-paper/5 animate-pulse"
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
+              {products.map((product) => {
               const justAdded = addedIds.has(product.id);
               return (
                 <div
@@ -158,7 +226,7 @@ export function CategoryGalleryPage() {
                 </div>
               );
             })}
-          </div>
+          </div>)}
 
           <p className="mt-12 text-center text-sm text-ink/40 dark:text-paper/40">
             Click any image to view details · Use the + button to add to your cart

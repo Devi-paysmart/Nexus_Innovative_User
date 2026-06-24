@@ -17,10 +17,14 @@ const careerSchema = z.object({
 
 type CareerForm = z.infer<typeof careerSchema>;
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+const API_KEY = import.meta.env.VITE_CLIENT_API_KEY;
+
 export function CareersPage() {
   const [submitted, setSubmitted] = useState(false);
   const [resume, setResume] = useState<File | null>(null);
   const [resumeError, setResumeError] = useState<string | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [dragActive, setDragActive] = useState(false);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -93,13 +97,44 @@ export function CareersPage() {
     }
   };
 
-  const onSubmit = async (_data: CareerForm) => {
+  const onSubmit = async (data: CareerForm) => {
     if (!resume) {
       setResumeError("Please upload your resume");
       return;
     }
-    await new Promise((r) => setTimeout(r, 1200));
-    setSubmitted(true);
+
+    setSubmitError(null);
+
+    try {
+      const formData = new FormData();
+      formData.append("name", data.name);
+      formData.append("email", data.email);
+      formData.append("mobile", data.mobile);
+      formData.append("position", data.position);
+      if (data.notes) {
+        formData.append("notes", data.notes);
+      }
+      formData.append("resume", resume);
+
+      const response = await fetch(`${API_BASE_URL}/api/v1/user/products/carrers_insert`, {
+        method: "POST",
+        headers: {
+          "X-API-Key": API_KEY,
+        },
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null);
+        throw new Error(errorData?.detail || `Server error (${response.status})`);
+      }
+
+      setSubmitted(true);
+    } catch (error) {
+      setSubmitError(
+        error instanceof Error ? error.message : "Something went wrong. Please try again."
+      );
+    }
   };
 
   const inputClass =
@@ -237,6 +272,12 @@ export function CareersPage() {
                         {...register("notes")}
                       />
                     </div>
+
+                    {submitError && (
+                      <div className="rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 px-4 py-3 text-sm text-red-600 dark:text-red-400">
+                        {submitError}
+                      </div>
+                    )}
 
                     <button 
                       type="submit" 

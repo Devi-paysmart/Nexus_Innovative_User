@@ -4,6 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { CheckCircle2, Mail, MapPin, Phone } from "lucide-react";
 import { motion } from "framer-motion";
+import { useLocation } from "react-router-dom";
 import { PageTransition } from "../components/common/PageTransition";
 import { SectionReveal } from "../components/common/SectionReveal";
 import { MagneticButton } from "../components/common/MagneticButton";
@@ -23,8 +24,21 @@ const contactSchema = z.object({
 
 type ContactForm = z.infer<typeof contactSchema>;
 
+const parseQuantity = (val: string): number => {
+  if (val === "above 500") return 500;
+  if (val.includes("to")) {
+    const maxVal = val.split("to")[1];
+    return parseInt(maxVal, 10) || 1;
+  }
+  return parseInt(val, 10) || 1;
+};
+
 export function ContactPage() {
   const [submitted, setSubmitted] = useState(false);
+  const location = useLocation();
+  const stateCategoryId = location.state?.categoryId;
+  const categoryId = stateCategoryId ? Number(stateCategoryId) : 4;
+
   const {
     register,
     handleSubmit,
@@ -36,9 +50,55 @@ export function ContactPage() {
   const giftingForValue = watch("giftingFor") || "";
   const quantityValue = watch("quantity") || "";
 
-  const onSubmit = async (_data: ContactForm) => {
-    await new Promise((r) => setTimeout(r, 800));
-    setSubmitted(true);
+  const onSubmit = async (data: ContactForm) => {
+    const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+    const API_KEY = import.meta.env.VITE_CLIENT_API_KEY;
+
+    try {
+      const payload = {
+        category_id: categoryId,
+        name: data.name,
+        email: data.email,
+        company_name: data.company,
+        mobile: data.mobile,
+        city: data.city,
+        budget: data.budget,
+        gifting_for: data.giftingFor,
+        additional_information: [
+          data.notes ? `Notes: ${data.notes}` : "",
+          `Quantity option: ${data.quantity}`
+        ].filter(Boolean).join("\n"),
+        quantity: parseQuantity(data.quantity)
+      };
+
+      const response = await fetch(
+        `${API_BASE_URL}/api/v1/user/products/category_enquiry`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-API-Key": API_KEY,
+          },
+          body: JSON.stringify(payload),
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null);
+        throw new Error(
+          errorData?.detail || `Server Error (${response.status})`
+        );
+      }
+
+      setSubmitted(true);
+    } catch (error) {
+      console.error(error);
+      alert(
+        error instanceof Error
+          ? error.message
+          : "Something went wrong. Please try again."
+      );
+    }
   };
 
   const inputClass =

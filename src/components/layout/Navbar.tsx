@@ -2,15 +2,17 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { Menu, X, ChevronDown, ShoppingBag } from "lucide-react";
-import { primaryNav, categoryLinks } from "../../data/navigation";
+import { primaryNav } from "../../data/navigation";
 import { cn } from "../../utils/cn";
 import { useCart } from "../../context/CartContext";
+import { useCategories } from "../../context/CategoriesContext";
 
 export function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [megaOpen, setMegaOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const { totalItems } = useCart();
+  const { categories } = useCategories();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 24);
@@ -69,13 +71,14 @@ export function Navbar() {
                 >
                   <p className="eyebrow mb-4">Shop by category</p>
                   <div className="grid grid-cols-2 gap-3">
-                    {categoryLinks.map((c) => (
+                    {categories.map((c) => (
                       <Link
-                        key={c.href}
-                        to={c.href}
+                        key={c.slug}
+                        to={`/collections/${c.slug}`}
                         className="rounded-xl px-3 py-2 text-sm text-ink/80 dark:text-paper/80 transition-colors hover:bg-gold/10 dark:hover:bg-gold/20 hover:text-gold-deep dark:hover:text-gold"
+                        onClick={() => setMegaOpen(false)}
                       >
-                        {c.label}
+                        {c.name}
                       </Link>
                     ))}
                   </div>

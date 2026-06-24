@@ -1,7 +1,9 @@
 import { Link } from "react-router-dom";
 import { footerNav } from "../../data/navigation";
+import { useCategories } from "../../context/CategoriesContext";
 
 export function Footer() {
+  const { categories } = useCategories();
   return (
     <footer className="relative overflow-hidden bg-ink text-paper">
       {/* Oversized watermark word */}
@@ -42,10 +44,10 @@ export function Footer() {
           <div>
             <p className="eyebrow mb-4 text-gold-light">Collections</p>
             <ul className="space-y-3">
-              {footerNav.offerings.slice(0, 4).map((l) => (
-                <li key={l.href}>
-                  <Link to={l.href} className="text-sm text-paper/70 hover:text-gold-light">
-                    {l.label}
+              {categories.map((c) => (
+                <li key={c.slug}>
+                  <Link to={`/collections/${c.slug}`} className="text-sm text-paper/70 hover:text-gold-light">
+                    {c.name}
                   </Link>
                 </li>
               ))}

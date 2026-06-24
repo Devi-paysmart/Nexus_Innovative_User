@@ -6,19 +6,13 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { MagneticButton } from "./MagneticButton";
 import { useLocation } from "react-router-dom";
-import { CustomDropdown } from "./CustomDropdown";
 
 import whatsappLogo from "../../../logo/whatsapp-removebg-preview.png";
 
 const enquirySchema = z.object({
   name: z.string().min(2, "Enter your full name"),
   mobile: z.string().min(8, "Enter a valid mobile number"),
-  company: z.string().min(2, "Enter your company name"),
   email: z.string().email("Enter a valid email"),
-  city: z.string().min(2, "Enter your city"),
-  budget: z.string().min(1, "Enter a budget amount").regex(/^₹\s\d+$/, "Enter a valid budget amount"),
-  giftingFor: z.string().min(1, "Tell us who this is for"),
-  quantity: z.string().min(1, "Enter an approximate quantity"),
   notes: z.string().optional(),
 });
 
@@ -67,21 +61,54 @@ export function FloatingActions() {
 
 function EnquiryModal({ onClose }: { onClose: () => void }) {
   const [submitted, setSubmitted] = useState(false);
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+  const API_KEY = import.meta.env.VITE_CLIENT_API_KEY;
+
   const {
     register,
     handleSubmit,
-    setValue,
-    watch,
     formState: { errors, isSubmitting },
   } = useForm<EnquiryForm>({ resolver: zodResolver(enquirySchema) });
 
-  const giftingForValue = watch("giftingFor") || "";
-  const quantityValue = watch("quantity") || "";
+  const onSubmit = async (data: EnquiryForm) => {
+    try {
+      const payload = {
+        name: data.name,
+        email: data.email,
+        mobile: Number(data.mobile),
+        message: data.notes || "",
+      };
 
-  const onSubmit = async (_data: EnquiryForm) => {
-    // Wire this up to your FastAPI endpoint / Supabase table.
-    await new Promise((r) => setTimeout(r, 900));
-    setSubmitted(true);
+      const response = await fetch(
+        `${API_BASE_URL}/api/v1/user/enquiries/create`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-API-Key": API_KEY,
+          },
+          body: JSON.stringify(payload),
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null);
+        throw new Error(
+          errorData?.detail || `Server Error (${response.status})`
+        );
+      }
+
+      const result = await response.json();
+      console.log("Enquiry Created:", result);
+      setSubmitted(true);
+    } catch (error) {
+      console.error(error);
+      alert(
+        error instanceof Error
+          ? error.message
+          : "Something went wrong. Please try again."
+      );
+    }
   };
 
   const inputClass =
@@ -145,72 +172,14 @@ function EnquiryModal({ onClose }: { onClose: () => void }) {
               {errors.mobile && <p className={errorClass}>{errors.mobile.message}</p>}
             </div>
             <div className="col-span-2 sm:col-span-1">
-              <input type="text" className={inputClass} placeholder="Company name" {...register("company")} />
-              {errors.company && <p className={errorClass}>{errors.company.message}</p>}
-            </div>
-            <div className="col-span-2 sm:col-span-1">
               <input type="email" className={inputClass} placeholder="Email ID" {...register("email")} />
               {errors.email && <p className={errorClass}>{errors.email.message}</p>}
-            </div>
-            <div className="col-span-2 sm:col-span-1">
-              <input type="text" className={inputClass} placeholder="City" {...register("city")} onInput={(e) => {
-                  e.currentTarget.value = e.currentTarget.value.replace(/[^A-Za-z\s]/g, "");
-                }}/>
-              {errors.city && <p className={errorClass}>{errors.city.message}</p>}
-            </div>
-            <div className="col-span-2 sm:col-span-1">
-              <input 
-                type="text"
-                className={inputClass} 
-                placeholder="Budget (e.g. 2000/unit)" 
-                {...register("budget", {
-                  onChange: (e) => {
-                    const val = e.target.value;
-                    const digits = val.replace(/[^0-9]/g, "");
-                    e.target.value = digits ? `₹ ${digits}` : "";
-                  }
-                })}
-              />
-              {errors.budget && <p className={errorClass}>{errors.budget.message}</p>}
-            </div>
-            <div className="col-span-2 sm:col-span-1">
-              <input type="hidden" {...register("giftingFor")} />
-              <CustomDropdown
-                placeholder="Select Gifting For"
-                value={giftingForValue}
-                options={[
-                  { label: "Internal Employee", value: "Internal Clients" },
-                  { label: "Clients / Customers", value: "External" },
-                  { label: "VIP / CEO", value: "Vip" },
-                  { label: "Others", value: "Others" },
-                ]}
-                onChange={(val) => setValue("giftingFor", val, { shouldValidate: true })}
-                error={errors.giftingFor?.message}
-              />
-            </div>
-            <div className="col-span-2 sm:col-span-1">
-              <input type="hidden" {...register("quantity")} />
-              <CustomDropdown
-                placeholder="Select Quantity"
-                value={quantityValue}
-                options={[
-                  { label: "0 to 5 pcs", value: "0 to 5" },
-                  { label: "5 to 10 pcs", value: "5 to 10" },
-                  { label: "10 to 50 pcs", value: "10 to 50" },
-                  { label: "50 to 100 pcs", value: "50 to 100" },
-                  { label: "100 to 200 pcs", value: "100 to 200" },
-                  { label: "200 to 500 pcs", value: "200 to 500" },
-                  { label: "Above 500 pcs", value: "above 500" },
-                ]}
-                onChange={(val) => setValue("quantity", val, { shouldValidate: true })}
-                error={errors.quantity?.message}
-              />
             </div>
             <div className="col-span-2">
               <textarea
                 className={inputClass}
                 rows={3}
-                placeholder="Additional information"
+                placeholder="Your message"
                 {...register("notes")}
               />
             </div>
@@ -226,3 +195,4 @@ function EnquiryModal({ onClose }: { onClose: () => void }) {
     </motion.div>
   );
 }
+

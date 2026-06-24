@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { ArrowLeft, Minus, Plus, Trash2, ShoppingBag, Send, X, CheckCircle2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useCart } from "../context/CartContext";
+import type { CartItem } from "../context/CartContext";
 import { PageTransition } from "../components/common/PageTransition";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -181,9 +182,8 @@ export function CartPage() {
         {enquiryOpen && (
           <CartEnquiryModal
             onClose={() => setEnquiryOpen(false)}
-            cartItems={items.map(
-              (i) => `${i.product.title} (x${i.quantity})`
-            )}
+            cartItems={items}
+            clearCart={clearCart}
           />
         )}
       </AnimatePresence>
@@ -194,11 +194,16 @@ export function CartPage() {
 function CartEnquiryModal({
   onClose,
   cartItems,
+  clearCart,
 }: {
   onClose: () => void;
-  cartItems: string[];
+  cartItems: CartItem[];
+  clearCart: () => void;
 }) {
   const [submitted, setSubmitted] = useState(false);
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+  const API_KEY = import.meta.env.VITE_CLIENT_API_KEY;
+
   const {
     register,
     handleSubmit,
@@ -209,15 +214,59 @@ function CartEnquiryModal({
 
   const giftingForValue = watch("giftingFor") || "";
   const quantityValue = watch("quantity") || "";
+  const onSubmit = async (data: EnquiryForm) => {
+    try {
+      for (const item of cartItems) {
+        const payload = {
+          product_id: Number(item.product.id),
+          name: data.name,
+          email: data.email,
+          company_name: data.company,
+          mobile: data.mobile,
+          city: data.city,
+          budget: data.budget,
+          gifting_for: data.giftingFor,
+          additional_information: [
+            data.notes ? `Notes: ${data.notes}` : "",
+            `Quantity option: ${data.quantity}`
+          ].filter(Boolean).join("\n"),
+          quantity: Number(item.quantity)
+        };
 
-  const onSubmit = async (_data: EnquiryForm) => {
-    // Wire this up to your FastAPI endpoint / Supabase table.
-    await new Promise((r) => setTimeout(r, 900));
-    setSubmitted(true);
+        const response = await fetch(
+          `${API_BASE_URL}/api/v1/user/products/product_enquiry`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "X-API-Key": API_KEY,
+            },
+            body: JSON.stringify(payload),
+          }
+        );
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => null);
+          throw new Error(
+            errorData?.detail || `Server Error (${response.status})`
+          );
+        }
+      }
+
+      setSubmitted(true);
+      clearCart();
+    } catch (error) {
+      console.error(error);
+      alert(
+        error instanceof Error
+          ? error.message
+          : "Something went wrong. Please try again."
+      );
+    }
   };
 
-  const inputClass =
-    "w-full rounded-xl border border-ink/10 bg-ink/5 px-4 py-2.5 text-sm text-ink outline-none transition-colors focus:border-gold-deep placeholder:text-ink/40 dark:border-paper/15 dark:bg-paper/5 dark:text-paper dark:placeholder:text-paper/40";
+  const modalInputClass =
+    "w-full rounded-xl border border-black/15 bg-[#c2c3c8] px-4 py-2.5 text-sm text-[#0f172a] outline-none transition-colors focus:border-[#cca028] placeholder:text-[#5f6368]";
   const errorClass = "mt-1 text-xs text-red-500";
 
   return (
@@ -225,7 +274,7 @@ function CartEnquiryModal({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-ink/50 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-[#0f172a]/55 p-4 backdrop-blur-md"
       onClick={onClose}
     >
       <motion.div
@@ -234,33 +283,33 @@ function CartEnquiryModal({
         exit={{ opacity: 0, y: 16, scale: 0.97 }}
         transition={{ duration: 0.3, ease: "easeOut" }}
         onClick={(e) => e.stopPropagation()}
-        className="glass dark:glass-dark max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-3xl p-8 shadow-luxe"
+        className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-[32px] p-10 bg-[#d1d2d6] border border-white/20 shadow-2xl relative text-[#0f172a]"
       >
         <div className="mb-6 flex items-start justify-between">
           <div>
-            <p className="eyebrow mb-2">Cart Enquiry</p>
-            <h3 className="font-display text-2xl text-ink dark:text-paper">
+            <p className="eyebrow mb-2 text-[#cca028] dark:text-[#cca028]">Cart Enquiry</p>
+            <h3 className="font-display text-3xl font-semibold text-[#0f172a] dark:text-[#0f172a] tracking-tight">
               Get a quote
             </h3>
           </div>
           <button
             onClick={onClose}
             aria-label="Close"
-            className="rounded-full p-2 text-ink dark:text-paper hover:bg-ink/5 dark:hover:bg-paper/10"
+            className="text-[#0f172a] hover:opacity-70 transition-opacity"
           >
-            <X size={18} />
+            <X size={20} />
           </button>
         </div>
 
         {/* Cart summary */}
-        <div className="mb-5 rounded-2xl bg-gold/5 dark:bg-gold/10 p-4">
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-gold-deep">
+        <div className="mb-5 rounded-2xl bg-[#c7c8cd] border border-black/5 p-4">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-[#cca028]">
             Products selected
           </p>
           <ul className="space-y-1">
             {cartItems.map((item, i) => (
-              <li key={i} className="text-sm text-ink/70 dark:text-paper/70">
-                • {item}
+              <li key={i} className="text-sm text-[#0f172a] font-medium">
+                • {item.product.title} (x{item.quantity})
               </li>
             ))}
           </ul>
@@ -272,11 +321,11 @@ function CartEnquiryModal({
             animate={{ opacity: 1, scale: 1 }}
             className="flex flex-col items-center gap-3 py-12 text-center"
           >
-            <CheckCircle2 className="text-gold-deep" size={40} />
-            <p className="font-display text-xl text-ink dark:text-paper">
+            <CheckCircle2 className="text-[#cca028]" size={40} />
+            <p className="font-display text-xl text-[#0f172a] dark:text-[#0f172a]">
               Enquiry received
             </p>
-            <p className="max-w-xs text-sm text-ink/60 dark:text-paper/60">
+            <p className="max-w-xs text-sm text-[#0f172a]/70 dark:text-[#0f172a]/70">
               Our gifting team will reach out within one business day with your custom quote.
             </p>
           </motion.div>
@@ -288,7 +337,7 @@ function CartEnquiryModal({
             <div className="col-span-2 sm:col-span-1">
               <input
                 type="text"
-                className={inputClass}
+                className={modalInputClass}
                 placeholder="Full name"
                 {...register("name")}
                 onInput={(e) => {
@@ -305,7 +354,7 @@ function CartEnquiryModal({
             <div className="col-span-2 sm:col-span-1">
               <input
                 type="number"
-                className={inputClass}
+                className={modalInputClass}
                 placeholder="Mobile number"
                 {...register("mobile")}
               />
@@ -316,7 +365,7 @@ function CartEnquiryModal({
             <div className="col-span-2 sm:col-span-1">
               <input
                 type="text"
-                className={inputClass}
+                className={modalInputClass}
                 placeholder="Company name"
                 {...register("company")}
               />
@@ -327,7 +376,7 @@ function CartEnquiryModal({
             <div className="col-span-2 sm:col-span-1">
               <input
                 type="email"
-                className={inputClass}
+                className={modalInputClass}
                 placeholder="Email ID"
                 {...register("email")}
               />
@@ -338,7 +387,7 @@ function CartEnquiryModal({
             <div className="col-span-2 sm:col-span-1">
               <input
                 type="text"
-                className={inputClass}
+                className={modalInputClass}
                 placeholder="City"
                 {...register("city")}
                 onInput={(e) => {
@@ -355,7 +404,7 @@ function CartEnquiryModal({
             <div className="col-span-2 sm:col-span-1">
               <input
                 type="text"
-                className={inputClass}
+                className={modalInputClass}
                 placeholder="Budget (e.g. 2000/unit)"
                 {...register("budget", {
                   onChange: (e) => {
@@ -384,6 +433,7 @@ function CartEnquiryModal({
                   setValue("giftingFor", val, { shouldValidate: true })
                 }
                 error={errors.giftingFor?.message}
+                isModalVariant={true}
               />
             </div>
             <div className="col-span-2 sm:col-span-1">
@@ -404,11 +454,12 @@ function CartEnquiryModal({
                   setValue("quantity", val, { shouldValidate: true })
                 }
                 error={errors.quantity?.message}
+                isModalVariant={true}
               />
             </div>
             <div className="col-span-2">
               <textarea
-                className={inputClass}
+                className={modalInputClass}
                 rows={3}
                 placeholder="Additional information"
                 {...register("notes")}
@@ -417,7 +468,8 @@ function CartEnquiryModal({
             <div className="col-span-2 mt-2">
               <button
                 type="submit"
-                className="w-full rounded-full bg-gold-deep text-ink py-3.5 text-sm font-medium transition-all hover:bg-gold hover:shadow-gold-glow"
+                disabled={isSubmitting}
+                className="w-full justify-center py-4 bg-[#cca028] text-[#0f172a] font-medium rounded-full shadow-md hover:bg-[#d5a82c] transition-all hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
               >
                 {isSubmitting ? "Sending…" : "Submit Enquiry"}
               </button>

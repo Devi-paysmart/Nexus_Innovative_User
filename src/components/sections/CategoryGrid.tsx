@@ -1,11 +1,13 @@
 import { Link } from "react-router-dom";
 import { ArrowUpRight } from "lucide-react";
 import { motion } from "framer-motion";
-import { categories } from "../../data/categories";
+import { useCategories } from "../../context/CategoriesContext";
 import type { Category } from "../../data/categories";
 import { SectionReveal } from "../common/SectionReveal";
 
 export function CategoryGrid() {
+  const { categories, loading } = useCategories();
+
   const Card = ({ cat }: { cat: Category }) => (
     <div className="w-[280px] sm:w-[340px] shrink-0">
       <Link to={`/collections/${cat.slug}`} className="group block">
@@ -64,20 +66,31 @@ export function CategoryGrid() {
 
         {/* Marquee slider container */}
         <div className="flex w-full overflow-hidden py-4 select-none">
-          <div className="flex animate-marquee hover:[animation-play-state:paused] pointer-events-auto">
-            {/* First sequence */}
-            <div className="flex gap-6 pr-6 shrink-0">
-              {categories.map((cat) => (
-                <Card key={cat.slug} cat={cat} />
+          {loading ? (
+            <div className="flex gap-6 px-6 shrink-0 w-full justify-center">
+              {[1, 2, 3].map((n) => (
+                <div
+                  key={n}
+                  className="w-[280px] sm:w-[340px] aspect-[4/5] rounded-3xl bg-ink/5 dark:bg-paper/5 animate-pulse"
+                />
               ))}
             </div>
-            {/* Second sequence */}
-            <div className="flex gap-6 pr-6 shrink-0">
-              {categories.map((cat) => (
-                <Card key={`${cat.slug}-duplicate`} cat={cat} />
-              ))}
+          ) : (
+            <div className="flex animate-marquee hover:[animation-play-state:paused] pointer-events-auto">
+              {/* First sequence */}
+              <div className="flex gap-6 pr-6 shrink-0">
+                {categories.map((cat) => (
+                  <Card key={cat.slug} cat={cat} />
+                ))}
+              </div>
+              {/* Second sequence */}
+              <div className="flex gap-6 pr-6 shrink-0">
+                {categories.map((cat) => (
+                  <Card key={`${cat.slug}-duplicate`} cat={cat} />
+                ))}
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
     </section>

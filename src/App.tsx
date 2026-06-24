@@ -68,17 +68,21 @@ function AnimatedRoutes() {
   );
 }
 
+import { CategoriesProvider } from "./context/CategoriesContext";
+
 function App() {
   return (
     <DarkModeProvider>
-      <CartProvider>
-        <BrowserRouter>
-          <ScrollToTop />
-          <MainLayout>
-            <AnimatedRoutes />
-          </MainLayout>
-        </BrowserRouter>
-      </CartProvider>
+      <CategoriesProvider>
+        <CartProvider>
+          <BrowserRouter>
+            <ScrollToTop />
+            <MainLayout>
+              <AnimatedRoutes />
+            </MainLayout>
+          </BrowserRouter>
+        </CartProvider>
+      </CategoriesProvider>
     </DarkModeProvider>
   );
 }
