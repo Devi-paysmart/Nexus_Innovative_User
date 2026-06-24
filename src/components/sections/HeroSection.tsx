@@ -7,6 +7,7 @@ import { motion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
 import { MagneticButton } from "../common/MagneticButton";
 import { FloatingParticles } from "../common/FloatingParticles";
+import { EnquiryModalTrigger } from "../common/EnquiryModal";
 
 
 gsap.registerPlugin(ScrollTrigger);
@@ -221,9 +222,13 @@ export function HeroSection() {
                                 Explore Collections <ArrowRight size={16} />
                             </MagneticButton>
                         </Link>
-                        {/* <Link to="/contact">
-                            <MagneticButton variant="ghost">Request Catalogue</MagneticButton>
-                        </Link> */}
+                        <EnquiryModalTrigger>
+                            {(openModal) => (
+                                <MagneticButton variant="ghost" onClick={openModal}>
+                                    Request Catalogue
+                                </MagneticButton>
+                            )}
+                        </EnquiryModalTrigger>
                     </motion.div>
                 </div>
 
