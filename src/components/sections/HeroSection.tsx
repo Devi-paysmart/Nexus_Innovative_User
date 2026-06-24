@@ -221,9 +221,9 @@ export function HeroSection() {
                                 Explore Collections <ArrowRight size={16} />
                             </MagneticButton>
                         </Link>
-                        <Link to="/contact">
+                        {/* <Link to="/contact">
                             <MagneticButton variant="ghost">Request Catalogue</MagneticButton>
-                        </Link>
+                        </Link> */}
                     </motion.div>
                 </div>
 
