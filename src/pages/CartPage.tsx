@@ -304,18 +304,20 @@ function CartEnquiryModal({
         </div>
 
         {/* Cart summary */}
-        <div className="mb-5 rounded-2xl bg-[#c7c8cd] border border-black/5 p-4">
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-[#cca028]">
-            Products selected
-          </p>
-          <ul className="space-y-1">
-            {cartItems.map((item, i) => (
-              <li key={i} className="text-sm text-[#0f172a] font-medium">
-                • {item.product.title} (x{item.quantity})
-              </li>
-            ))}
-          </ul>
-        </div>
+        {!submitted && (
+          <div className="mb-5 rounded-2xl bg-[#c7c8cd] border border-black/5 p-4">
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-[#cca028]">
+              Products selected
+            </p>
+            <ul className="space-y-1">
+              {cartItems.map((item, i) => (
+                <li key={i} className="text-sm text-[#0f172a] font-medium">
+                  • {item.product.title} (x{item.quantity})
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         {submitted ? (
           <motion.div
