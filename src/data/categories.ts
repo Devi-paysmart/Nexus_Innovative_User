@@ -18,6 +18,6 @@ export interface Category {
 
 export const categories: Category[] = [];
 
-export function getCategoryBySlug(slug: string): Category | undefined {
+export function getCategoryBySlug(_slug: string): Category | undefined {
   return undefined;
 }

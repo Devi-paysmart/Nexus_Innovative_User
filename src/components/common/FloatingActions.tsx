@@ -75,7 +75,7 @@ function EnquiryModal({ onClose }: { onClose: () => void }) {
       const payload = {
         name: data.name,
         email: data.email,
-        mobile: Number(data.mobile),
+        mobile: data.mobile,
         message: data.notes || "",
       };
 

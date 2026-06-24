@@ -58,7 +58,7 @@ export function Footer() {
             <p className="eyebrow mb-4 text-gold-light">Stay in the loop</p>
             <form
               onSubmit={(e) => e.preventDefault()}
-              className="flex items-center gap-2 rounded-full border border-paper/15 bg-paper/5 p-1.5"
+              className="flex items-center gap-2 rounded-xl border border-paper/15 bg-paper/5 p-1.5"
             >
               <input
                 type="email"
@@ -68,7 +68,7 @@ export function Footer() {
               />
               <button
                 type="submit"
-                className="shrink-0 rounded-full bg-gold px-4 py-2 text-xs font-medium text-ink transition-colors hover:bg-gold-light"
+                className="shrink-0 rounded-xl bg-gold px-4 py-2 text-xs font-medium text-ink transition-colors hover:bg-gold-light"
               >
                 Subscribe
               </button>

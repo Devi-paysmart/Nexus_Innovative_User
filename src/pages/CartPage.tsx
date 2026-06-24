@@ -55,13 +55,13 @@ export function CartPage() {
               <div className="flex items-center gap-3 flex-shrink-0">
                 <button
                   onClick={clearCart}
-                  className="inline-flex items-center gap-2 rounded-full border border-ink/15 dark:border-paper/15 px-5 py-3 text-sm font-medium text-ink/70 dark:text-paper/70 transition-all hover:border-red-400 hover:text-red-500 dark:hover:border-red-400 dark:hover:text-red-400"
+                  className="inline-flex items-center gap-2 rounded-xl border border-ink/15 dark:border-paper/15 px-5 py-3 text-sm font-medium text-ink/70 dark:text-paper/70 transition-all hover:border-red-400 hover:text-red-500 dark:hover:border-red-400 dark:hover:text-red-400"
                 >
                   <Trash2 size={15} /> Clear all
                 </button>
                 <button
                   onClick={() => setEnquiryOpen(true)}
-                  className="inline-flex items-center gap-2 rounded-full bg-gold text-ink px-6 py-3.5 text-sm font-medium transition-all hover:bg-gold-deep dark:hover:bg-gold-light hover:shadow-gold-glow cursor-pointer shadow-luxe-sm"
+                  className="inline-flex items-center gap-2 rounded-xl bg-gold text-ink px-6 py-3.5 text-sm font-medium transition-all hover:bg-gold-deep dark:hover:bg-gold-light hover:shadow-gold-glow cursor-pointer shadow-luxe-sm"
                 >
                   <Send size={15} /> Enquire Now
                 </button>
@@ -86,7 +86,7 @@ export function CartPage() {
               </p>
               <Link
                 to="/collections"
-                className="mt-8 inline-flex items-center gap-2 rounded-full bg-gold text-ink px-8 py-4 text-sm font-medium transition-all hover:bg-gold-deep hover:shadow-gold-glow shadow-luxe-sm"
+                className="mt-8 inline-flex items-center gap-2 rounded-xl bg-gold text-ink px-8 py-4 text-sm font-medium transition-all hover:bg-gold-deep hover:shadow-gold-glow shadow-luxe-sm"
               >
                 Explore Collections
               </Link>
@@ -167,7 +167,7 @@ export function CartPage() {
                 </div>
                 <button
                   onClick={() => setEnquiryOpen(true)}
-                  className="inline-flex items-center gap-2 rounded-full bg-gold text-ink px-8 py-4 text-sm font-medium transition-all hover:bg-gold-deep dark:hover:bg-gold-light hover:shadow-gold-glow cursor-pointer shadow-luxe-sm flex-shrink-0"
+                  className="inline-flex items-center gap-2 rounded-xl bg-gold text-ink px-8 py-4 text-sm font-medium transition-all hover:bg-gold-deep dark:hover:bg-gold-light hover:shadow-gold-glow cursor-pointer shadow-luxe-sm flex-shrink-0"
                 >
                   <Send size={16} /> Enquire Now
                 </button>
@@ -216,41 +216,43 @@ function CartEnquiryModal({
   const quantityValue = watch("quantity") || "";
   const onSubmit = async (data: EnquiryForm) => {
     try {
-      for (const item of cartItems) {
-        const payload = {
-          product_id: Number(item.product.id),
-          name: data.name,
-          email: data.email,
-          company_name: data.company,
-          mobile: data.mobile,
-          city: data.city,
-          budget: data.budget,
-          gifting_for: data.giftingFor,
-          additional_information: [
-            data.notes ? `Notes: ${data.notes}` : "",
-            `Quantity option: ${data.quantity}`
-          ].filter(Boolean).join("\n"),
-          quantity: Number(item.quantity)
-        };
+      const itemsPayload = cartItems.map((item) => ({
+        product_id: Number(item.product.id),
+        quantity: Number(item.quantity),
+      }));
 
-        const response = await fetch(
-          `${API_BASE_URL}/api/v1/user/products/product_enquiry`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "X-API-Key": API_KEY,
-            },
-            body: JSON.stringify(payload),
-          }
-        );
+      const payload = {
+        items: itemsPayload,
+        name: data.name,
+        email: data.email,
+        company_name: data.company,
+        mobile: data.mobile,
+        city: data.city,
+        budget: data.budget,
+        gifting_for: data.giftingFor,
+        additional_information: [
+          data.notes ? `Notes: ${data.notes}` : "",
+          `Quantity option: ${data.quantity}`
+        ].filter(Boolean).join("\n")
+      };
 
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => null);
-          throw new Error(
-            errorData?.detail || `Server Error (${response.status})`
-          );
+      const response = await fetch(
+        `${API_BASE_URL}/api/v1/user/products/product_enquiry`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-API-Key": API_KEY,
+          },
+          body: JSON.stringify(payload),
         }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null);
+        throw new Error(
+          errorData?.detail || `Server Error (${response.status})`
+        );
       }
 
       setSubmitted(true);
@@ -302,18 +304,20 @@ function CartEnquiryModal({
         </div>
 
         {/* Cart summary */}
-        <div className="mb-5 rounded-2xl bg-[#c7c8cd] border border-black/5 p-4">
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-[#cca028]">
-            Products selected
-          </p>
-          <ul className="space-y-1">
-            {cartItems.map((item, i) => (
-              <li key={i} className="text-sm text-[#0f172a] font-medium">
-                • {item.product.title} (x{item.quantity})
-              </li>
-            ))}
-          </ul>
-        </div>
+        {!submitted && (
+          <div className="mb-5 rounded-2xl bg-[#c7c8cd] border border-black/5 p-4">
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-[#cca028]">
+              Products selected
+            </p>
+            <ul className="space-y-1">
+              {cartItems.map((item, i) => (
+                <li key={i} className="text-sm text-[#0f172a] font-medium">
+                  • {item.product.title} (x{item.quantity})
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         {submitted ? (
           <motion.div
@@ -433,7 +437,6 @@ function CartEnquiryModal({
                   setValue("giftingFor", val, { shouldValidate: true })
                 }
                 error={errors.giftingFor?.message}
-                isModalVariant={true}
               />
             </div>
             <div className="col-span-2 sm:col-span-1">
@@ -454,7 +457,6 @@ function CartEnquiryModal({
                   setValue("quantity", val, { shouldValidate: true })
                 }
                 error={errors.quantity?.message}
-                isModalVariant={true}
               />
             </div>
             <div className="col-span-2">
@@ -469,7 +471,7 @@ function CartEnquiryModal({
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="w-full justify-center py-4 bg-[#cca028] text-[#0f172a] font-medium rounded-full shadow-md hover:bg-[#d5a82c] transition-all hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
+                className="w-full justify-center py-4 bg-[#cca028] text-[#0f172a] font-medium rounded-xl shadow-md hover:bg-[#d5a82c] transition-all hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
               >
                 {isSubmitting ? "Sending…" : "Submit Enquiry"}
               </button>
