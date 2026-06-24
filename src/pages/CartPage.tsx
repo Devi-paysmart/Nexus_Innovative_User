@@ -55,13 +55,13 @@ export function CartPage() {
               <div className="flex items-center gap-3 flex-shrink-0">
                 <button
                   onClick={clearCart}
-                  className="inline-flex items-center gap-2 rounded-full border border-ink/15 dark:border-paper/15 px-5 py-3 text-sm font-medium text-ink/70 dark:text-paper/70 transition-all hover:border-red-400 hover:text-red-500 dark:hover:border-red-400 dark:hover:text-red-400"
+                  className="inline-flex items-center gap-2 rounded-xl border border-ink/15 dark:border-paper/15 px-5 py-3 text-sm font-medium text-ink/70 dark:text-paper/70 transition-all hover:border-red-400 hover:text-red-500 dark:hover:border-red-400 dark:hover:text-red-400"
                 >
                   <Trash2 size={15} /> Clear all
                 </button>
                 <button
                   onClick={() => setEnquiryOpen(true)}
-                  className="inline-flex items-center gap-2 rounded-full bg-gold text-ink px-6 py-3.5 text-sm font-medium transition-all hover:bg-gold-deep dark:hover:bg-gold-light hover:shadow-gold-glow cursor-pointer shadow-luxe-sm"
+                  className="inline-flex items-center gap-2 rounded-xl bg-gold text-ink px-6 py-3.5 text-sm font-medium transition-all hover:bg-gold-deep dark:hover:bg-gold-light hover:shadow-gold-glow cursor-pointer shadow-luxe-sm"
                 >
                   <Send size={15} /> Enquire Now
                 </button>
@@ -86,7 +86,7 @@ export function CartPage() {
               </p>
               <Link
                 to="/collections"
-                className="mt-8 inline-flex items-center gap-2 rounded-full bg-gold text-ink px-8 py-4 text-sm font-medium transition-all hover:bg-gold-deep hover:shadow-gold-glow shadow-luxe-sm"
+                className="mt-8 inline-flex items-center gap-2 rounded-xl bg-gold text-ink px-8 py-4 text-sm font-medium transition-all hover:bg-gold-deep hover:shadow-gold-glow shadow-luxe-sm"
               >
                 Explore Collections
               </Link>
@@ -167,7 +167,7 @@ export function CartPage() {
                 </div>
                 <button
                   onClick={() => setEnquiryOpen(true)}
-                  className="inline-flex items-center gap-2 rounded-full bg-gold text-ink px-8 py-4 text-sm font-medium transition-all hover:bg-gold-deep dark:hover:bg-gold-light hover:shadow-gold-glow cursor-pointer shadow-luxe-sm flex-shrink-0"
+                  className="inline-flex items-center gap-2 rounded-xl bg-gold text-ink px-8 py-4 text-sm font-medium transition-all hover:bg-gold-deep dark:hover:bg-gold-light hover:shadow-gold-glow cursor-pointer shadow-luxe-sm flex-shrink-0"
                 >
                   <Send size={16} /> Enquire Now
                 </button>
@@ -471,7 +471,7 @@ function CartEnquiryModal({
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="w-full justify-center py-4 bg-[#cca028] text-[#0f172a] font-medium rounded-full shadow-md hover:bg-[#d5a82c] transition-all hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
+                className="w-full justify-center py-4 bg-[#cca028] text-[#0f172a] font-medium rounded-xl shadow-md hover:bg-[#d5a82c] transition-all hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
               >
                 {isSubmitting ? "Sending…" : "Submit Enquiry"}
               </button>

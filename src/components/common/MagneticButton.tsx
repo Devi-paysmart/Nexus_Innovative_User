@@ -21,7 +21,7 @@ export function MagneticButton({
   const { ref, onMouseMove, onMouseLeave } = useMagnetic<HTMLButtonElement>(0.25);
 
   const base =
-    "relative inline-flex items-center gap-2 rounded-full px-8 py-3.5 text-sm font-medium tracking-wide transition-transform duration-300 ease-out";
+    "relative inline-flex items-center gap-2 rounded-xl px-8 py-3.5 text-sm font-medium tracking-wide transition-transform duration-300 ease-out";
 
   const variants = {
     primary: "bg-ink text-paper shadow-luxe-sm hover:shadow-gold-glow",

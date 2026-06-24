@@ -4,9 +4,10 @@ import { X, CheckCircle2 } from "lucide-react";
 
 interface EnquiryModalProps {
   onClose: () => void;
+  categoryId?: number;
 }
 
-export function EnquiryModal({ onClose }: EnquiryModalProps) {
+export function EnquiryModal({ onClose, categoryId }: EnquiryModalProps) {
   const [form, setForm] = useState({ name: "", mobile: "", email: "", message: "" });
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -30,7 +31,7 @@ export function EnquiryModal({ onClose }: EnquiryModalProps) {
 
     try {
       const payload = {
-        category_id: 4,
+        category_id: categoryId || 4,
         name: form.name,
         email: form.email,
         company_name: "Not Provided",

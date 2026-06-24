@@ -67,11 +67,11 @@ export function NewsletterCTA() {
                 type="email"
                 required
                 placeholder="Work email address"
-                className="flex-1 rounded-full border border-ink/10 bg-white px-5 py-3 text-sm outline-none focus:border-gold-deep dark:border-paper/15 dark:bg-ink-soft dark:text-paper"
+                className="flex-1 rounded-xl border border-ink/10 bg-white px-5 py-3 text-sm outline-none focus:border-gold-deep dark:border-paper/15 dark:bg-ink-soft dark:text-paper"
               />
               <button
                 type="submit"
-                className="rounded-full bg-ink px-6 py-3 text-sm font-medium text-paper transition-shadow hover:shadow-gold-glow"
+                className="rounded-xl bg-ink px-6 py-3 text-sm font-medium text-paper transition-shadow hover:shadow-gold-glow"
               >
                 Subscribe
               </button>

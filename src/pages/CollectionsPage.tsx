@@ -43,7 +43,7 @@ export function CollectionsPage() {
                 <button
                   onClick={() => setActiveTab("all")}
                   className={cn(
-                    "rounded-full px-5 py-2 text-sm font-medium transition-colors",
+                    "rounded-xl px-5 py-2 text-sm font-medium transition-colors",
                     activeTab === "all"
                       ? "bg-ink text-paper"
                       : "border border-ink/10 text-ink/70 hover:border-gold-deep dark:border-paper/15 dark:text-paper/70"
@@ -56,7 +56,7 @@ export function CollectionsPage() {
                     key={c.slug}
                     onClick={() => setActiveTab(c.slug)}
                     className={cn(
-                      "rounded-full px-5 py-2 text-sm font-medium transition-colors",
+                      "rounded-xl px-5 py-2 text-sm font-medium transition-colors",
                       activeTab === c.slug
                         ? "bg-ink text-paper"
                         : "border border-ink/10 text-ink/70 hover:border-gold-deep dark:border-paper/15 dark:text-paper/70"
