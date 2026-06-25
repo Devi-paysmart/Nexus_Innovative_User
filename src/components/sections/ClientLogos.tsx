@@ -47,7 +47,7 @@ export function BudgetCTA() {
               <div className="relative">
                 <p className="eyebrow mb-4 text-gold-light">Whatever your budget</p>
                 <h2 className="mx-auto max-w-3xl font-display text-3xl text-paper lg:text-5xl">
-                  Corporate gifts Starting from ₹1,000 lakhs — we have the solution for you
+                  Corporate gifts Starting from ₹1,000 — we have the solution for you
                 </h2>
                 <p className="mx-auto mt-6 max-w-xl text-sm leading-relaxed text-paper/60">
                   We ensure gifting becomes a strategic differentiation for you rather than

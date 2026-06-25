@@ -63,7 +63,7 @@ export function NewsletterCTA() {
               onSubmit={(e) => e.preventDefault()}
               className="mx-auto mt-8 flex max-w-md flex-col gap-3 sm:flex-row"
             >
-              <input
+              {/* <input
                 type="email"
                 required
                 placeholder="Work email address"
@@ -74,7 +74,7 @@ export function NewsletterCTA() {
                 className="rounded-xl bg-ink px-6 py-3 text-sm font-medium text-paper transition-shadow hover:shadow-gold-glow"
               >
                 Subscribe
-              </button>
+              </button> */}
             </form>
           </div>
         </SectionReveal>

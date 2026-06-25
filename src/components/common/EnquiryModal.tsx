@@ -129,7 +129,7 @@ export function EnquiryModal({ onClose, categoryId }: EnquiryModalProps) {
             className="flex flex-col items-center py-8 text-center"
           >
             <CheckCircle2 className="text-gold-deep" size={48} />
-            <p className="mt-4 font-display text-2xl text-ink">Enquiry sent!</p>
+            <p className="mt-4 font-display text-2xl text-ink">Enquiry Accepted</p>
             <p className="mt-2 text-sm text-ink/60">
               Our gifting consultants will reach out shortly.
             </p>

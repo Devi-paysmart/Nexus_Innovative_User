@@ -31,7 +31,7 @@ export function FloatingActions() {
     <>
       <div className="fixed bottom-6 right-6 z-40 flex flex-col items-end gap-3">
         <a
-          href="https://wa.me/919811099999?text=Hi%2C%20I%20want%20to%20know%20more%20about%20corporate%20gifting"
+          href="https://wa.me/919884040777?text=Hi%2C%20I%20want%20to%20know%20more%20about%20corporate%20gifting"
           target="_blank"
           rel="noreferrer"
           aria-label="Chat on WhatsApp"
@@ -148,9 +148,9 @@ function EnquiryModal({ onClose }: { onClose: () => void }) {
             className="flex flex-col items-center gap-3 py-12 text-center"
           >
             <CheckCircle2 className="text-gold-deep" size={40} />
-            <p className="font-display text-xl text-ink dark:text-paper">Enquiry received</p>
+            <p className="font-display text-xl text-ink dark:text-paper">Enquiry Accepted</p>
             <p className="max-w-xs text-sm text-ink/60 dark:text-paper/60">
-              Our gifting team will reach out within one business day.
+              Our gifting consultants will reach out shortly.
             </p>
           </motion.div>
         ) : (

@@ -327,10 +327,10 @@ function CartEnquiryModal({
           >
             <CheckCircle2 className="text-[#cca028]" size={40} />
             <p className="font-display text-xl text-[#0f172a] dark:text-[#0f172a]">
-              Enquiry received
+              Enquiry Accepted
             </p>
             <p className="max-w-xs text-sm text-[#0f172a]/70 dark:text-[#0f172a]/70">
-              Our gifting team will reach out within one business day with your custom quote.
+              Our gifting consultants will reach out shortly.
             </p>
           </motion.div>
         ) : (

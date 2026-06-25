@@ -54,7 +54,7 @@ export function Footer() {
             </ul>
           </div>
 
-          <div>
+          {/* <div>
             <p className="eyebrow mb-4 text-gold-light">Stay in the loop</p>
             <form
               onSubmit={(e) => e.preventDefault()}
@@ -73,7 +73,7 @@ export function Footer() {
                 Subscribe
               </button>
             </form>
-          </div>
+          </div> */}
         </div>
 
         <div className="flex flex-col items-center justify-between gap-4 pt-8 text-xs text-paper/40 sm:flex-row">
