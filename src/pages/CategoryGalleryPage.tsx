@@ -8,6 +8,16 @@ import { ProductDetailModal } from "../components/gallery/GalleryComponents";
 import { PageTransition } from "../components/common/PageTransition";
 import { useCart } from "../context/CartContext";
 
+const STORAGE_URL = import.meta.env.VITE_SUPABASE_STORAGE_URL || 'https://gzekphwepqxmytzrtask.supabase.co/storage/v1/object/public/nexus-images';
+
+const getImageUrl = (pathOrUrl: string | undefined | null) => {
+  if (!pathOrUrl) return '';
+  if (pathOrUrl.startsWith('http://') || pathOrUrl.startsWith('https://')) {
+    return pathOrUrl;
+  }
+  return `${STORAGE_URL}/${pathOrUrl}`;
+};
+
 export function CategoryGalleryPage() {
   const { category: slug } = useParams<{ category: string }>();
   const navigate = useNavigate();
@@ -53,7 +63,7 @@ export function CategoryGalleryPage() {
             id: String(p.id),
             title: p.name,
             description: p.description,
-            image: p.image_url || (p.images && p.images[0]) || "/sus-mug.jpg",
+            image: getImageUrl(p.image_url || (p.images && p.images[0])) || "/sus-mug.jpg",
           }));
 
         setProducts(mappedProducts);

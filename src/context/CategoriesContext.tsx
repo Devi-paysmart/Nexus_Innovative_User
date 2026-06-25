@@ -24,6 +24,16 @@ const getSlug = (name: string): string => {
   return name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
 };
 
+const STORAGE_URL = import.meta.env.VITE_SUPABASE_STORAGE_URL || 'https://gzekphwepqxmytzrtask.supabase.co/storage/v1/object/public/nexus-images';
+
+const getImageUrl = (pathOrUrl: string | undefined | null) => {
+  if (!pathOrUrl) return '';
+  if (pathOrUrl.startsWith('http://') || pathOrUrl.startsWith('https://')) {
+    return pathOrUrl;
+  }
+  return `${STORAGE_URL}/${pathOrUrl}`;
+};
+
 interface DBCategory {
   id: number;
   category_id: string;
@@ -79,8 +89,8 @@ export function CategoriesProvider({ children }: { children: ReactNode }) {
         const mappedCategories: Category[] = dbCategories.map((dbCat) => {
           const slug = getSlug(dbCat.name);
           const tagline = taglines[slug] || "Curated collections";
-          const coverImage = dbCat.images && dbCat.images[0] ? dbCat.images[0] : "/welcome-gifts.jpg";
-          const cardImage = dbCat.images && dbCat.images[0] ? dbCat.images[0] : "/welcome-gifts.jpg";
+          const coverImage = dbCat.images && dbCat.images[0] ? getImageUrl(dbCat.images[0]) : "/welcome-gifts.jpg";
+          const cardImage = dbCat.images && dbCat.images[0] ? getImageUrl(dbCat.images[0]) : "/welcome-gifts.jpg";
 
           // Map associated active products
           const associatedProducts: Product[] = dbProducts
@@ -89,7 +99,7 @@ export function CategoriesProvider({ children }: { children: ReactNode }) {
               id: String(p.id),
               title: p.name,
               description: p.description,
-              image: p.image_url || (p.images && p.images[0]) || "/sus-mug.jpg",
+              image: getImageUrl(p.image_url || (p.images && p.images[0])) || "/sus-mug.jpg",
             }));
 
           return {
