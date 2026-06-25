@@ -97,16 +97,41 @@ interface ProductDetailModalProps {
 }
 
 export function ProductDetailModal({ product, onClose }: ProductDetailModalProps) {
+  const [index, setIndex] = useState(0);
+  const [isHovered, setIsHovered] = useState(false);
+
+  useEffect(() => {
+    setIndex(0);
+  }, [product]);
+
+  const list = product?.images && product.images.length > 0 ? product.images : (product ? [product.image] : []);
+
+  const handlePrev = () => {
+    setIndex((prev) => (prev === 0 ? list.length - 1 : prev - 1));
+  };
+
+  const handleNext = () => {
+    setIndex((prev) => (prev === list.length - 1 ? 0 : prev + 1));
+  };
+
   useEffect(() => {
     if (!product) return;
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        onClose();
+      } else if (e.key === "ArrowLeft" && list.length > 1) {
+        handlePrev();
+      } else if (e.key === "ArrowRight" && list.length > 1) {
+        handleNext();
+      }
+    };
     window.addEventListener("keydown", onKey);
     document.body.style.overflow = "hidden";
     return () => {
       window.removeEventListener("keydown", onKey);
       document.body.style.overflow = "";
     };
-  }, [product, onClose]);
+  }, [product, onClose, index, list.length]);
 
   return (
     <AnimatePresence>
@@ -126,15 +151,74 @@ export function ProductDetailModal({ product, onClose }: ProductDetailModalProps
             onClick={(e) => e.stopPropagation()}
             className="glass max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-3xl shadow-luxe dark:glass-dark"
           >
-            <div className="relative aspect-[16/10] overflow-hidden rounded-t-3xl">
-              <img src={product.image} alt={product.title} className="h-full w-full object-cover" />
+            <div
+              className="relative aspect-[16/10] overflow-hidden rounded-t-3xl select-none"
+              onMouseEnter={() => setIsHovered(true)}
+              onMouseLeave={() => setIsHovered(false)}
+            >
+              <AnimatePresence initial={false} mode="wait">
+                <motion.img
+                  key={index}
+                  src={list[index]}
+                  alt={product.title}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.3 }}
+                  className="h-full w-full object-cover"
+                />
+              </AnimatePresence>
+
               <button
                 onClick={onClose}
                 aria-label="Close"
-                className="absolute right-4 top-4 rounded-full bg-ink/60 p-2.5 text-paper backdrop-blur-sm hover:bg-ink/80"
+                className="absolute right-4 top-4 rounded-full bg-ink/60 p-2.5 text-paper backdrop-blur-sm hover:bg-ink/80 z-20 transition-colors"
               >
                 <X size={18} />
               </button>
+
+              {list.length > 1 && (
+                <AnimatePresence>
+                  {isHovered && (
+                    <>
+                      <motion.button
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: -10 }}
+                        onClick={(e) => { e.stopPropagation(); handlePrev(); }}
+                        className="absolute left-4 top-1/2 -translate-y-1/2 rounded-full bg-paper/90 p-3 text-ink shadow-luxe-sm transition-transform hover:scale-110 active:scale-95 z-20 hover:bg-white flex items-center justify-center cursor-pointer"
+                      >
+                        <ChevronLeft size={20} />
+                      </motion.button>
+
+                      <motion.button
+                        initial={{ opacity: 0, x: 10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: 10 }}
+                        onClick={(e) => { e.stopPropagation(); handleNext(); }}
+                        className="absolute right-4 top-1/2 -translate-y-1/2 rounded-full bg-paper/90 p-3 text-ink shadow-luxe-sm transition-transform hover:scale-110 active:scale-95 z-20 hover:bg-white flex items-center justify-center cursor-pointer"
+                      >
+                        <ChevronRight size={20} />
+                      </motion.button>
+                    </>
+                  )}
+                </AnimatePresence>
+              )}
+
+              {list.length > 1 && (
+                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-20 bg-ink/30 px-3 py-1.5 rounded-full backdrop-blur-sm">
+                  {list.map((_, i) => (
+                    <button
+                      key={i}
+                      onClick={() => setIndex(i)}
+                      className={cn(
+                        "h-2 w-2 rounded-full transition-all duration-300 cursor-pointer",
+                        i === index ? "bg-gold scale-125" : "bg-paper/50"
+                      )}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
             <div className="p-8 lg:p-10">
               <p className="eyebrow mb-3">Product</p>
@@ -212,3 +296,101 @@ export function Lightbox({ images, index, onClose, onNavigate }: LightboxProps) 
     </motion.div>
   );
 }
+
+interface ProductCardImageCarouselProps {
+  images: string[];
+  alt: string;
+  onClick?: () => void;
+  aspectClassName?: string;
+}
+
+export function ProductCardImageCarousel({
+  images,
+  alt,
+  onClick,
+  aspectClassName = "aspect-[4/3]",
+}: ProductCardImageCarouselProps) {
+  const [index, setIndex] = useState(0);
+  const [isHovered, setIsHovered] = useState(false);
+
+  const list = images && images.length > 0 ? images : ["/sus-mug.jpg"];
+
+  const handlePrev = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    setIndex((prev) => (prev === 0 ? list.length - 1 : prev - 1));
+  };
+
+  const handleNext = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    setIndex((prev) => (prev === list.length - 1 ? 0 : prev + 1));
+  };
+
+  return (
+    <div
+      className={cn("relative overflow-hidden w-full select-none cursor-pointer", aspectClassName)}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      onClick={onClick}
+    >
+      <AnimatePresence initial={false} mode="wait">
+        <motion.img
+          key={index}
+          src={list[index]}
+          alt={alt}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.3 }}
+          className="h-full w-full object-cover"
+        />
+      </AnimatePresence>
+
+      <div className="absolute inset-0 bg-ink/0 transition-colors group-hover:bg-ink/10" />
+
+      {list.length > 1 && (
+        <AnimatePresence>
+          {isHovered && (
+            <>
+              <motion.button
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -10 }}
+                onClick={handlePrev}
+                className="absolute left-3 top-1/2 -translate-y-1/2 rounded-full bg-paper/90 p-2 text-ink shadow-luxe-sm transition-transform hover:scale-110 active:scale-95 z-10 hover:bg-white flex items-center justify-center cursor-pointer"
+              >
+                <ChevronLeft size={16} />
+              </motion.button>
+
+              <motion.button
+                initial={{ opacity: 0, x: 10 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 10 }}
+                onClick={handleNext}
+                className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full bg-paper/90 p-2 text-ink shadow-luxe-sm transition-transform hover:scale-110 active:scale-95 z-10 hover:bg-white flex items-center justify-center cursor-pointer"
+              >
+                <ChevronRight size={16} />
+              </motion.button>
+            </>
+          )}
+        </AnimatePresence>
+      )}
+
+      {list.length > 1 && (
+        <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5 z-10 bg-ink/30 px-2 py-1 rounded-full backdrop-blur-sm">
+          {list.map((_, i) => (
+            <div
+              key={i}
+              className={cn(
+                "h-1.5 w-1.5 rounded-full transition-all duration-300",
+                i === index ? "bg-gold scale-125" : "bg-paper/50"
+              )}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+

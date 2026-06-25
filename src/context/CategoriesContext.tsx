@@ -38,7 +38,6 @@ interface DBProduct {
   name: string;
   description: string;
   price: number;
-  image_url: string | null;
   images: string[];
   category_id: number;
   status: string;
@@ -51,7 +50,7 @@ export function CategoriesProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const fetchCategoriesAndProducts = async () => {
-      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
+      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
       const API_KEY = import.meta.env.VITE_CLIENT_API_KEY;
 
       try {
@@ -89,7 +88,7 @@ export function CategoriesProvider({ children }: { children: ReactNode }) {
               id: String(p.id),
               title: p.name,
               description: p.description,
-              image: p.image_url || (p.images && p.images[0]) || "/sus-mug.jpg",
+              image: (p.images && p.images[0]) || "/sus-mug.jpg",
             }));
 
           return {

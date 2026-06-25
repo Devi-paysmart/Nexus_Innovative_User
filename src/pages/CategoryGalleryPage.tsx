@@ -4,7 +4,7 @@ import { ArrowLeft, Plus, Check } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useCategories } from "../context/CategoriesContext";
 import type { Product } from "../data/categories";
-import { ProductDetailModal } from "../components/gallery/GalleryComponents";
+import { ProductDetailModal, ProductCardImageCarousel } from "../components/gallery/GalleryComponents";
 import { PageTransition } from "../components/common/PageTransition";
 import { useCart } from "../context/CartContext";
 
@@ -53,7 +53,8 @@ export function CategoryGalleryPage() {
             id: String(p.id),
             title: p.name,
             description: p.description,
-            image: p.image_url || (p.images && p.images[0]) || "/sus-mug.jpg",
+            image: (p.images && p.images[0]) || "/sus-mug.jpg",
+            images: p.images || [],
           }));
 
         setProducts(mappedProducts);
@@ -103,6 +104,7 @@ export function CategoryGalleryPage() {
     );
   }
 
+
   return (
     <PageTransition>
       <div className="pt-32 pb-24">
@@ -151,14 +153,12 @@ export function CategoryGalleryPage() {
                     key={product.id}
                     className="group flex flex-col overflow-hidden rounded-3xl bg-cloud shadow-luxe-sm dark:bg-ink-soft transition-transform duration-300 hover:-translate-y-1.5"
                   >
-                    <div className="relative aspect-[4/3] overflow-hidden cursor-pointer" onClick={() => setSelected(product)}>
-                      <img
-                        src={product.image}
-                        alt={product.title}
-                        className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                      />
-                      <div className="absolute inset-0 bg-ink/0 transition-colors group-hover:bg-ink/10" />
-                    </div>
+                    <ProductCardImageCarousel
+                      images={product.images || [product.image]}
+                      alt={product.title}
+                      onClick={() => setSelected(product)}
+                      aspectClassName="aspect-[4/3]"
+                    />
                     <div className="flex flex-1 flex-col p-6">
                       <h3 className="font-display text-xl text-ink dark:text-paper">
                         {product.title}

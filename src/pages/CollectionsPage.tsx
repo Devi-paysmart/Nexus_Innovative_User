@@ -5,6 +5,7 @@ import { useCategories } from "../context/CategoriesContext";
 import { PageTransition } from "../components/common/PageTransition";
 import { SectionReveal } from "../components/common/SectionReveal";
 import { cn } from "../utils/cn";
+import { ProductCardImageCarousel } from "../components/gallery/GalleryComponents";
 
 export function CollectionsPage() {
   const { categories, loading } = useCategories();
@@ -51,7 +52,8 @@ export function CollectionsPage() {
               id: String(p.id),
               title: p.name,
               description: p.description,
-              image: p.image_url || (p.images && p.images[0]) || "/sus-mug.jpg",
+              image: (p.images && p.images[0]) || "/sus-mug.jpg",
+              images: p.images || [],
               categoryName: cat ? cat.name : "",
               categorySlug: cat ? cat.slug : "",
             };
@@ -139,10 +141,10 @@ export function CollectionsPage() {
                     <SectionReveal key={`${activeTab}-${product.id}`} delay={(i % 3) * 0.05}>
                       <Link to={`/collections/${product.categorySlug}`} className="group block">
                         <motion.div whileHover={{ y: -4 }} className="overflow-hidden rounded-2xl shadow-luxe-sm h-full flex flex-col">
-                          <img
-                            src={product.image}
+                          <ProductCardImageCarousel
+                            images={product.images || [product.image]}
                             alt={product.title}
-                            className="w-full aspect-[4/5] object-cover transition-transform duration-500 group-hover:scale-105"
+                            aspectClassName="aspect-[4/5]"
                           />
                           <div className="bg-paper p-4 dark:bg-ink-soft flex-1">
                             <p className="text-xs text-gold-deep">{product.categoryName}</p>
