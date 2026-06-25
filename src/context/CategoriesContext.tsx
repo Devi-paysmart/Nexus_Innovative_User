@@ -24,14 +24,8 @@ const getSlug = (name: string): string => {
   return name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
 };
 
-const STORAGE_URL = import.meta.env.VITE_SUPABASE_STORAGE_URL || 'https://gzekphwepqxmytzrtask.supabase.co/storage/v1/object/public/nexus-images';
-
 const getImageUrl = (pathOrUrl: string | undefined | null) => {
-  if (!pathOrUrl) return '';
-  if (pathOrUrl.startsWith('http://') || pathOrUrl.startsWith('https://')) {
-    return pathOrUrl;
-  }
-  return `${STORAGE_URL}/${pathOrUrl}`;
+  return pathOrUrl || '';
 };
 
 interface DBCategory {

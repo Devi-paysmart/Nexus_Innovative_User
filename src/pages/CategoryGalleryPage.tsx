@@ -8,14 +8,8 @@ import { ProductDetailModal } from "../components/gallery/GalleryComponents";
 import { PageTransition } from "../components/common/PageTransition";
 import { useCart } from "../context/CartContext";
 
-const STORAGE_URL = import.meta.env.VITE_SUPABASE_STORAGE_URL || 'https://gzekphwepqxmytzrtask.supabase.co/storage/v1/object/public/nexus-images';
-
 const getImageUrl = (pathOrUrl: string | undefined | null) => {
-  if (!pathOrUrl) return '';
-  if (pathOrUrl.startsWith('http://') || pathOrUrl.startsWith('https://')) {
-    return pathOrUrl;
-  }
-  return `${STORAGE_URL}/${pathOrUrl}`;
+  return pathOrUrl || '';
 };
 
 export function CategoryGalleryPage() {
