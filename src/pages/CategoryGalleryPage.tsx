@@ -63,7 +63,7 @@ export function CategoryGalleryPage() {
             id: String(p.id),
             title: p.name,
             description: p.description,
-            image: getImageUrl(p.image_url || (p.images && p.images[0])) || "/sus-mug.jpg",
+            image: getImageUrl(p.images && p.images[0]) || "/sus-mug.jpg",
           }));
 
         setProducts(mappedProducts);

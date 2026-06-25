@@ -48,7 +48,6 @@ interface DBProduct {
   name: string;
   description: string;
   price: number;
-  image_url: string | null;
   images: string[];
   category_id: number;
   status: string;
@@ -99,7 +98,7 @@ export function CategoriesProvider({ children }: { children: ReactNode }) {
               id: String(p.id),
               title: p.name,
               description: p.description,
-              image: getImageUrl(p.image_url || (p.images && p.images[0])) || "/sus-mug.jpg",
+              image: getImageUrl(p.images && p.images[0]) || "/sus-mug.jpg",
             }));
 
           return {
