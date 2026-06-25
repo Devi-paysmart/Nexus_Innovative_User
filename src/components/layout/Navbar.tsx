@@ -55,10 +55,13 @@ export function Navbar() {
             onMouseEnter={() => setMegaOpen(true)}
             onMouseLeave={() => setMegaOpen(false)}
           >
-            <button className="flex items-center gap-1 text-sm font-medium text-ink/80 dark:text-paper/80 transition-colors hover:text-gold-deep dark:hover:text-gold">
+            <Link
+              to="/collections"
+              className="flex items-center gap-1 text-sm font-medium text-ink/80 dark:text-paper/80 transition-colors hover:text-gold-deep dark:hover:text-gold"
+            >
               Collections
               <ChevronDown size={14} className={cn("transition-transform", megaOpen && "rotate-180")} />
-            </button>
+            </Link>
 
             <AnimatePresence>
               {megaOpen && (

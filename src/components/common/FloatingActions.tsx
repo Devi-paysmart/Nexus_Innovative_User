@@ -10,8 +10,8 @@ import { useLocation } from "react-router-dom";
 import whatsappLogo from "../../../logo/whatsapp-removebg-preview.png";
 
 const enquirySchema = z.object({
-  name: z.string().min(2, "Enter your full name"),
-  mobile: z.string().min(8, "Enter a valid mobile number"),
+  name: z.string().min(2, "Enter your full name").regex(/^[A-Za-z\s]+$/, "Name must contain only alphabetic characters"),
+  mobile: z.string().regex(/^\d{10}$/, "Mobile number must be exactly 10 digits"),
   email: z.string().email("Enter a valid email"),
   notes: z.string().optional(),
 });
@@ -29,7 +29,7 @@ export function FloatingActions() {
 
   return (
     <>
-      <div className="fixed bottom-6 right-6 z-40 flex flex-col gap-3">
+      <div className="fixed bottom-6 right-6 z-40 flex flex-col items-end gap-3">
         <a
           href="https://wa.me/919811099999?text=Hi%2C%20I%20want%20to%20know%20more%20about%20corporate%20gifting"
           target="_blank"
@@ -154,7 +154,7 @@ function EnquiryModal({ onClose }: { onClose: () => void }) {
             </p>
           </motion.div>
         ) : (
-          <form onSubmit={handleSubmit(onSubmit)} className="grid grid-cols-2 gap-4">
+          <form onSubmit={handleSubmit(onSubmit)} noValidate className="grid grid-cols-2 gap-4">
             <div className="col-span-2 sm:col-span-1">
               <input
                 type="text"
@@ -168,7 +168,16 @@ function EnquiryModal({ onClose }: { onClose: () => void }) {
               {errors.name && <p className={errorClass}>{errors.name.message}</p>}
             </div>
             <div className="col-span-2 sm:col-span-1">
-              <input type="number" className={inputClass} placeholder="Mobile number" {...register("mobile")} />
+              <input
+                type="tel"
+                maxLength={10}
+                className={inputClass}
+                placeholder="Mobile number"
+                {...register("mobile")}
+                onInput={(e) => {
+                  e.currentTarget.value = e.currentTarget.value.replace(/\D/g, "");
+                }}
+              />
               {errors.mobile && <p className={errorClass}>{errors.mobile.message}</p>}
             </div>
             <div className="col-span-2 sm:col-span-1">

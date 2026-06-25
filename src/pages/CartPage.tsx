@@ -11,11 +11,11 @@ import { z } from "zod";
 import { CustomDropdown } from "../components/common/CustomDropdown";
 
 const enquirySchema = z.object({
-  name: z.string().min(2, "Enter your full name"),
-  mobile: z.string().min(8, "Enter a valid mobile number"),
+  name: z.string().min(2, "Enter your full name").regex(/^[A-Za-z\s]+$/, "Name must contain only alphabetic characters"),
+  mobile: z.string().regex(/^\d{10}$/, "Mobile number must be exactly 10 digits"),
   company: z.string().min(2, "Enter your company name"),
   email: z.string().email("Enter a valid email"),
-  city: z.string().min(2, "Enter your city"),
+  city: z.string().min(2, "Enter your city").regex(/^[A-Za-z\s]+$/, "City name must contain only alphabetic characters"),
   budget: z.string().min(1, "Enter a budget amount").regex(/^₹\s\d+$/, "Enter a valid budget amount"),
   giftingFor: z.string().min(1, "Tell us who this is for"),
   quantity: z.string().min(1, "Enter an approximate quantity"),
@@ -336,6 +336,7 @@ function CartEnquiryModal({
         ) : (
           <form
             onSubmit={handleSubmit(onSubmit)}
+            noValidate
             className="grid grid-cols-2 gap-4"
           >
             <div className="col-span-2 sm:col-span-1">
@@ -357,10 +358,14 @@ function CartEnquiryModal({
             </div>
             <div className="col-span-2 sm:col-span-1">
               <input
-                type="number"
+                type="tel"
+                maxLength={10}
                 className={modalInputClass}
                 placeholder="Mobile number"
                 {...register("mobile")}
+                onInput={(e) => {
+                  e.currentTarget.value = e.currentTarget.value.replace(/\D/g, "");
+                }}
               />
               {errors.mobile && (
                 <p className={errorClass}>{errors.mobile.message}</p>
@@ -372,6 +377,12 @@ function CartEnquiryModal({
                 className={modalInputClass}
                 placeholder="Company name"
                 {...register("company")}
+                onInput={(e) => {
+                  e.currentTarget.value = e.currentTarget.value.replace(
+                    /[^A-Za-z0-9\s]/g,
+                    ""
+                  );
+                }}
               />
               {errors.company && (
                 <p className={errorClass}>{errors.company.message}</p>

@@ -36,6 +36,8 @@ export function SectionReveal({ children, className = "", delay = 0 }: SectionRe
       );
     }, el);
 
+    ScrollTrigger.refresh();
+
     return () => ctx.revert();
   }, [delay]);
 

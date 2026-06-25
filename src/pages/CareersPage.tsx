@@ -8,10 +8,10 @@ import { PageTransition } from "../components/common/PageTransition";
 import { SectionReveal } from "../components/common/SectionReveal";
 
 const careerSchema = z.object({
-  name: z.string().min(2, "Enter your full name"),
+  name: z.string().min(2, "Enter your full name").regex(/^[A-Za-z\s]+$/, "Name must contain only alphabetic characters"),
   email: z.string().email("Enter a valid email address"),
-  mobile: z.string().min(8, "Enter a valid mobile number"),
-  position: z.string().min(1, "Select a position"),
+  mobile: z.string().regex(/^\d{10}$/, "Mobile number must be exactly 10 digits"),
+  position: z.string().min(1, "Select a position").regex(/^[A-Za-z\s]+$/, "Position must contain only alphabetic characters"),
   notes: z.string().optional(),
 });
 
@@ -180,9 +180,16 @@ export function CareersPage() {
                     </p>
                   </motion.div>
                 ) : (
-                  <form onSubmit={handleSubmit(onSubmit)} className="grid gap-4">
+                  <form onSubmit={handleSubmit(onSubmit)} noValidate className="grid gap-4">
                     <div>
-                      <input className={inputClass} placeholder="Full name" {...register("name")} />
+                      <input 
+                        className={inputClass} 
+                        placeholder="Full name" 
+                        {...register("name")} 
+                        onInput={(e) => {
+                          e.currentTarget.value = e.currentTarget.value.replace(/[^A-Za-z\s]/g, "");
+                        }} 
+                      />
                       {errors.name && <p className={errorClass}>{errors.name.message}</p>}
                     </div>
 
@@ -192,13 +199,29 @@ export function CareersPage() {
                         {errors.email && <p className={errorClass}>{errors.email.message}</p>}
                       </div>
                       <div>
-                        <input className={inputClass} placeholder="Mobile number" {...register("mobile")} />
+                        <input 
+                          className={inputClass} 
+                          type="tel" 
+                          maxLength={10} 
+                          placeholder="Mobile number" 
+                          {...register("mobile")} 
+                          onInput={(e) => {
+                            e.currentTarget.value = e.currentTarget.value.replace(/\D/g, "");
+                          }} 
+                        />
                         {errors.mobile && <p className={errorClass}>{errors.mobile.message}</p>}
                       </div>
                     </div>
 
                     <div>
-                     <input className={inputClass} placeholder="Position interested in" {...register("position")} />
+                      <input
+                        className={inputClass}
+                        placeholder="Position interested in"
+                        {...register("position")}
+                        onInput={(e) => {
+                          e.currentTarget.value = e.currentTarget.value.replace(/[^A-Za-z\s]/g, "");
+                        }}
+                      />
                       {errors.position && <p className={errorClass}>{errors.position.message}</p>}
                     </div>
 

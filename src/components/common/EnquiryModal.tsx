@@ -9,24 +9,55 @@ interface EnquiryModalProps {
 
 export function EnquiryModal({ onClose, categoryId }: EnquiryModalProps) {
   const [form, setForm] = useState({ name: "", mobile: "", email: "", message: "" });
+  const [errors, setErrors] = useState({ name: "", mobile: "", email: "" });
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const validateField = (name: string, value: string): string => {
+    let errorMsg = "";
+    if (name === "name") {
+      if (!value) {
+        errorMsg = "Enter your full name";
+      } else if (!/^[A-Za-z\s]+$/.test(value)) {
+        errorMsg = "Name must contain only alphabetic characters";
+      }
+    } else if (name === "mobile") {
+      if (!value) {
+        errorMsg = "Enter your mobile number";
+      } else if (!/^\d{10}$/.test(value)) {
+        errorMsg = "Mobile number must be exactly 10 digits";
+      }
+    } else if (name === "email") {
+      if (!value) {
+        errorMsg = "Enter your email address";
+      } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+        errorMsg = "Enter a valid email address";
+      }
+    }
+    setErrors((prev) => ({ ...prev, [name]: errorMsg }));
+    return errorMsg;
+  };
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+    const { name, value } = e.target;
+    setForm((prev) => ({ ...prev, [name]: value }));
+    validateField(name, value);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.name || !form.mobile || !form.email) {
-      setError("Please fill in all required fields.");
+    const nameErr = validateField("name", form.name);
+    const mobileErr = validateField("mobile", form.mobile);
+    const emailErr = validateField("email", form.email);
+
+    if (nameErr || mobileErr || emailErr) {
       return;
     }
     setError(null);
     setSubmitting(true);
 
-    const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
+    const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
     const API_KEY = import.meta.env.VITE_CLIENT_API_KEY || "";
 
     try {
@@ -64,6 +95,7 @@ export function EnquiryModal({ onClose, categoryId }: EnquiryModalProps) {
 
   const inputClass =
     "w-full rounded-xl border border-ink/10 bg-ink/5 px-4 py-3 text-sm outline-none transition-colors focus:border-gold-deep placeholder:text-ink/40";
+  const errorClass = "mt-1 text-xs text-red-500";
 
   return (
     <motion.div
@@ -115,35 +147,48 @@ export function EnquiryModal({ onClose, categoryId }: EnquiryModalProps) {
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
-                <input
-                  name="name"
-                  type="text"
-                  placeholder="Full name"
-                  value={form.name}
-                  onChange={handleChange}
-                  className={inputClass}
-                  required
-                />
-                <input
-                  name="mobile"
-                  type="tel"
-                  placeholder="Mobile number"
-                  value={form.mobile}
-                  onChange={handleChange}
-                  className={inputClass}
-                  required
-                />
+                <div>
+                  <input
+                    name="name"
+                    type="text"
+                    placeholder="Full name"
+                    value={form.name}
+                    onChange={handleChange}
+                    onInput={(e) => {
+                      e.currentTarget.value = e.currentTarget.value.replace(/[^A-Za-z\s]/g, "");
+                    }}
+                    className={inputClass}
+                  />
+                  {errors.name && <p className={errorClass}>{errors.name}</p>}
+                </div>
+                <div>
+                  <input
+                    name="mobile"
+                    type="tel"
+                    maxLength={10}
+                    placeholder="Mobile number"
+                    value={form.mobile}
+                    onChange={handleChange}
+                    onInput={(e) => {
+                      e.currentTarget.value = e.currentTarget.value.replace(/\D/g, "");
+                    }}
+                    className={inputClass}
+                  />
+                  {errors.mobile && <p className={errorClass}>{errors.mobile}</p>}
+                </div>
               </div>
 
-              <input
-                name="email"
-                type="email"
-                placeholder="Email ID"
-                value={form.email}
-                onChange={handleChange}
-                className={inputClass}
-                required
-              />
+              <div>
+                <input
+                  name="email"
+                  type="text"
+                  placeholder="Email ID"
+                  value={form.email}
+                  onChange={handleChange}
+                  className={inputClass}
+                />
+                {errors.email && <p className={errorClass}>{errors.email}</p>}
+              </div>
 
               <textarea
                 name="message"
@@ -154,7 +199,7 @@ export function EnquiryModal({ onClose, categoryId }: EnquiryModalProps) {
                 className={`${inputClass} resize-none`}
               />
 
-              {error && <p className="text-xs text-red-500">{error}</p>}
+              {error && <p className={errorClass}>{error}</p>}
 
               <button
                 type="submit"
