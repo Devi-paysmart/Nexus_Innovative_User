@@ -12,7 +12,7 @@ export function Navbar() {
   const [megaOpen, setMegaOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const { totalItems } = useCart();
-  const { categories } = useCategories();
+  const { categories, refreshData } = useCategories();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 24);
@@ -57,6 +57,7 @@ export function Navbar() {
           >
             <Link
               to="/collections"
+              onClick={refreshData}
               className="flex items-center gap-1 text-sm font-medium text-ink/80 dark:text-paper/80 transition-colors hover:text-gold-deep dark:hover:text-gold"
             >
               Collections
@@ -163,7 +164,12 @@ export function Navbar() {
                 <Link
                   key={link.href}
                   to={link.href}
-                  onClick={() => setMobileOpen(false)}
+                  onClick={() => {
+                    setMobileOpen(false);
+                    if (link.href === "/collections") {
+                      refreshData();
+                    }
+                  }}
                   className="rounded-xl px-3 py-3 text-sm font-medium text-ink/80 dark:text-paper/80 hover:bg-gold/10 dark:hover:bg-gold/20 hover:text-gold-deep dark:hover:text-gold"
                 >
                   {link.label}

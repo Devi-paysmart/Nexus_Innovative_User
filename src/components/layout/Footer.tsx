@@ -12,8 +12,8 @@ export function Footer() {
       </div>
 
       <div className="relative mx-auto max-w-7xl px-6 py-20">
-        <div className="grid gap-12 border-b border-paper/10 pb-16 lg:grid-cols-[1.3fr_1fr_1fr_1.2fr]">
-          <div>
+        <div className="grid gap-12 border-b border-paper/10 pb-16 md:grid-cols-3 justify-items-center text-center">
+          <div className="flex flex-col items-center">
             <div className="flex items-center gap-2 mb-4">
               <img
                 src="/logo.png"
@@ -28,7 +28,7 @@ export function Footer() {
             </p>
           </div>
 
-          <div>
+          <div className="flex flex-col items-center">
             <p className="eyebrow mb-4 text-gold-light">Company</p>
             <ul className="space-y-3">
               {footerNav.company.map((l) => (
@@ -41,7 +41,7 @@ export function Footer() {
             </ul>
           </div>
 
-          <div>
+          <div className="flex flex-col items-center">
             <p className="eyebrow mb-4 text-gold-light">Collections</p>
             <ul className="space-y-3">
               {categories.map((c) => (

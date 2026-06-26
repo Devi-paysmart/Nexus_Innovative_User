@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { motion } from "framer-motion";
 import type { ReactNode } from "react";
 
@@ -12,6 +13,10 @@ interface PageTransitionProps {
 }
 
 export function PageTransition({ children }: PageTransitionProps) {
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
   return (
     <motion.div
       variants={pageVariants}
@@ -24,3 +29,4 @@ export function PageTransition({ children }: PageTransitionProps) {
     </motion.div>
   );
 }
+

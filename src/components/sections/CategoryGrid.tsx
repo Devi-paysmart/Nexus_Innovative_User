@@ -6,7 +6,7 @@ import type { Category } from "../../data/categories";
 import { SectionReveal } from "../common/SectionReveal";
 
 export function CategoryGrid() {
-  const { categories, loading } = useCategories();
+  const { categories, loading, refreshData } = useCategories();
 
   const Card = ({ cat }: { cat: Category }) => (
     <div className="w-[280px] sm:w-[340px] shrink-0">
@@ -51,6 +51,7 @@ export function CategoryGrid() {
             </h2>
             <Link
               to="/collections"
+              onClick={refreshData}
               className="mt-2 inline-flex items-center gap-1 text-sm font-medium text-gold-deep hover:underline"
             >
               View all collections <ArrowUpRight size={16} />

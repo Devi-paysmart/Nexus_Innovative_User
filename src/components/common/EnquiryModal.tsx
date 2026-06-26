@@ -123,7 +123,7 @@ export function EnquiryModal({ onClose, categoryId }: EnquiryModalProps) {
         </button>
 
         {submitted ? (
-          <motion.div
+          <motion.div 
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             className="flex flex-col items-center py-8 text-center"

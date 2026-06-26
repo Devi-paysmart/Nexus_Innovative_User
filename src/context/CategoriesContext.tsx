@@ -7,6 +7,7 @@ interface CategoriesContextType {
   loading: boolean;
   error: string | null;
   getCategoryBySlug: (slug: string) => Category | undefined;
+  refreshData: () => Promise<void>;
 }
 
 const CategoriesContext = createContext<CategoriesContextType | undefined>(undefined);
@@ -48,72 +49,79 @@ export function CategoriesProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchCategoriesAndProducts = async () => {
-      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
-      const API_KEY = import.meta.env.VITE_CLIENT_API_KEY;
+  const refreshData = async () => {
+    const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
+    const API_KEY = import.meta.env.VITE_CLIENT_API_KEY;
 
-      try {
-        const response = await fetch(
-          `${API_BASE_URL}/api/v1/user/products/list_category_products`,
-          {
-            method: "GET",
-            headers: {
-              "Content-Type": "application/json",
-              "X-API-Key": API_KEY || "",
-            },
-          }
-        );
+    try {
+      const headers = {
+        "Content-Type": "application/json",
+        "X-API-Key": API_KEY || "",
+      };
 
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => null);
-          throw new Error(errorData?.detail || `Server error (${response.status})`);
-        }
+      const [categoriesRes, productsRes] = await Promise.all([
+        fetch(`${API_BASE_URL}/api/v1/user/products/list_categories`, {
+          method: "GET",
+          headers,
+        }),
+        fetch(`${API_BASE_URL}/api/v1/user/products/list_products`, {
+          method: "GET",
+          headers,
+        }),
+      ]);
 
-        const data = await response.json();
-        const dbCategories: DBCategory[] = data.categories || [];
-        const dbProducts: DBProduct[] = data.products || [];
-
-        // Map database categories to Category type
-        const mappedCategories: Category[] = dbCategories.map((dbCat) => {
-          const slug = getSlug(dbCat.name);
-          const tagline = taglines[slug] || "Curated collections";
-          const coverImage = dbCat.images && dbCat.images[0] ? dbCat.images[0] : "/welcome-gifts.jpg";
-          const cardImage = dbCat.images && dbCat.images[0] ? dbCat.images[0] : "/welcome-gifts.jpg";
-
-          // Map associated active products
-          const associatedProducts: Product[] = dbProducts
-            .filter((p) => p.category_id === dbCat.id && p.status === "active")
-            .map((p) => ({
-              id: String(p.id),
-              title: p.name,
-              description: p.description,
-              image: (p.images && p.images[0]) || "/sus-mug.jpg",
-            }));
-
-          return {
-            id: dbCat.id,
-            slug,
-            name: dbCat.name,
-            tagline,
-            description: dbCat.description,
-            coverImage,
-            cardImage,
-            products: associatedProducts,
-          };
-        });
-
-        setCategories(mappedCategories);
-        setError(null);
-      } catch (err) {
-        console.error("Failed to load categories:", err);
-        setError(err instanceof Error ? err.message : "Failed to load categories.");
-      } finally {
-        setLoading(false);
+      if (!categoriesRes.ok || !productsRes.ok) {
+        throw new Error("Failed to load categories or products");
       }
-    };
 
-    fetchCategoriesAndProducts();
+      const categoriesData = await categoriesRes.json();
+      const productsData = await productsRes.json();
+
+      const dbCategories: DBCategory[] = categoriesData.categories || [];
+      const dbProducts: DBProduct[] = productsData.products || [];
+
+      // Map database categories to Category type
+      const mappedCategories: Category[] = dbCategories.map((dbCat) => {
+        const slug = getSlug(dbCat.name);
+        const tagline = taglines[slug] || "Curated collections";
+        const coverImage = dbCat.images && dbCat.images[0] ? dbCat.images[0] : "/welcome-gifts.jpg";
+        const cardImage = dbCat.images && dbCat.images[0] ? dbCat.images[0] : "/welcome-gifts.jpg";
+
+        // Map associated active products
+        const associatedProducts: Product[] = dbProducts
+          .filter((p) => p.category_id === dbCat.id && p.status === "active")
+          .map((p) => ({
+            id: String(p.id),
+            title: p.name,
+            description: p.description,
+            image: (p.images && p.images[0]) || "/sus-mug.jpg",
+            images: p.images || [],
+          }));
+
+        return {
+          id: dbCat.id,
+          slug,
+          name: dbCat.name,
+          tagline,
+          description: dbCat.description,
+          coverImage,
+          cardImage,
+          products: associatedProducts,
+        };
+      });
+
+      setCategories(mappedCategories);
+      setError(null);
+    } catch (err) {
+      console.error("Failed to load categories:", err);
+      setError(err instanceof Error ? err.message : "Failed to load categories.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    refreshData();
   }, []);
 
   const getCategoryBySlug = (slug: string) => {
@@ -121,7 +129,7 @@ export function CategoriesProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <CategoriesContext.Provider value={{ categories, loading, error, getCategoryBySlug }}>
+    <CategoriesContext.Provider value={{ categories, loading, error, getCategoryBySlug, refreshData }}>
       {children}
     </CategoriesContext.Provider>
   );
