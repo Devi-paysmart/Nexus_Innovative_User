@@ -59,57 +59,114 @@ export function ProfilePage() {
     navigate("/login");
   };
 
-  // State-driven dummy enquiries (editable in UI)
-  const [enquiries, setEnquiries] = useState<Enquiry[]>(() => {
-    const saved = localStorage.getItem("nexus_dummy_enquiries");
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch (e) {
-        console.error("Error reading enquiries from localStorage:", e);
-      }
-    }
-    return [
-      {
-        id: "ENQ-89410",
-        title: "Festive Holiday Hampers for Stakeholders",
-        category: "Festive Gifts",
-        quantity: 250,
-        budget: "₹50 - ₹100",
-        status: "Approved",
-        createdDate: "2026-06-15 10:24 AM",
-        updatedDate: "2026-06-18 04:30 PM",
-        notes: "Hampers should contain gourmet chocolates, a premium diary, and corporate cards with personalized greetings.",
-      },
-      {
-        id: "ENQ-89115",
-        title: "Tech Gifting Bundles for Developers",
-        category: "Tech Gifts",
-        quantity: 120,
-        budget: "₹100 - ₹150",
-        status: "Processing",
-        createdDate: "2026-06-22 09:15 AM",
-        updatedDate: "2026-06-22 09:15 AM",
-        notes: "Include customized laptop sleeve, a multi-port USB-C hub, and a premium steel water bottle with logo engraving.",
-      },
-      {
-        id: "ENQ-88902",
-        title: "Eco-Friendly Welcome Gifts",
-        category: "Sustainable Gifts",
-        quantity: 80,
-        budget: "₹25 - ₹50",
-        status: "Draft",
-        createdDate: "2026-06-24 02:10 PM",
-        updatedDate: "2026-06-25 11:05 AM",
-        notes: "Bamboo fiber coffee mugs and cork-covered spiral notebooks. Awaiting final head count verification.",
-      },
-    ];
+  const [profileData, setProfileData] = useState({
+    gifting_tier: "Corporate Partner",
+    lifetime_spent: 1245000.00,
+    account_manager: "Sarah Jenkins (Corporate Relations)",
+    delivery_address: "450 Lexington Ave, New York, NY 10017",
   });
 
-  // Sync to localStorage
+  // Fetch profile details from backend
   useEffect(() => {
-    localStorage.setItem("nexus_dummy_enquiries", JSON.stringify(enquiries));
-  }, [enquiries]);
+    const fetchProfile = async () => {
+      const baseUrl = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
+      const apiKey = import.meta.env.VITE_CLIENT_API_KEY || "";
+      const token = localStorage.getItem("nexus_token");
+
+      if (!token) return;
+
+      try {
+        const response = await fetch(`${baseUrl}/api/v1/user/auth/profile`, {
+          headers: {
+            "X-API-Key": apiKey,
+            "Authorization": `Bearer ${token}`
+          }
+        });
+        if (response.ok) {
+          const data = await response.json();
+          if (data.profile) {
+            const p = data.profile;
+            setCurrentUser((curr) => ({
+              name: p.name || curr.name,
+              email: p.email || curr.email,
+              phone: p.phone || curr.phone,
+            }));
+            setProfileData({
+              gifting_tier: p.gifting_tier || "Corporate Partner",
+              lifetime_spent: p.lifetime_spent !== undefined && p.lifetime_spent !== null ? Number(p.lifetime_spent) : 1245000.00,
+              account_manager: p.account_manager || "Sarah Jenkins (Corporate Relations)",
+              delivery_address: p.delivery_address || "450 Lexington Ave, New York, NY 10017",
+            });
+          }
+        }
+      } catch (err) {
+        console.error("Failed to fetch profile details:", err);
+      }
+    };
+
+    fetchProfile();
+  }, []);
+
+  const [enquiries, setEnquiries] = useState<Enquiry[]>([]);
+  const [loadingEnquiries, setLoadingEnquiries] = useState(true);
+
+  // Fetch enquiries from backend
+  useEffect(() => {
+    const fetchEnquiries = async () => {
+      const baseUrl = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
+      const apiKey = import.meta.env.VITE_CLIENT_API_KEY || "";
+      const token = localStorage.getItem("nexus_token");
+
+      if (!token) {
+        setLoadingEnquiries(false);
+        return;
+      }
+
+      try {
+        const response = await fetch(`${baseUrl}/api/v1/user/enquiries/my_enquiries`, {
+          headers: {
+            "X-API-Key": apiKey,
+            "Authorization": `Bearer ${token}`
+          }
+        });
+        if (response.ok) {
+          const data = await response.json();
+          const mapped: Enquiry[] = (data.enquiries || []).map((item: any) => {
+            const dateStr = item.created_at ? new Date(item.created_at).toLocaleString("en-IN", {
+              year: "numeric",
+              month: "short",
+              day: "2-digit",
+              hour: "2-digit",
+              minute: "2-digit",
+              hour12: true
+            }) : "";
+            
+            return {
+              id: item.enquiry_id || `ENQ${String(item.id).padStart(5, '0')}`,
+              title: item.gifting_for ? `${item.gifting_for} Gifting` : "Corporate Gifting",
+              category: item.enquiry_type ? (item.enquiry_type.charAt(0).toUpperCase() + item.enquiry_type.slice(1) + " Gifting") : "General Gifting",
+              quantity: item.quantity || 1,
+              budget: item.budget || "Custom",
+              status: "Processing",
+              createdDate: dateStr,
+              updatedDate: dateStr,
+              notes: [item.message, item.additional_information].filter(Boolean).join("\n")
+            };
+          });
+          setEnquiries(mapped);
+          if (mapped.length > 0) {
+            setSelectedPdfId(mapped[0].id);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to fetch enquiries:", err);
+      } finally {
+        setLoadingEnquiries(false);
+      }
+    };
+
+    fetchEnquiries();
+  }, []);
 
   // Edit Enquiry states
   const [editingEnquiry, setEditingEnquiry] = useState<Enquiry | null>(null);
@@ -117,8 +174,18 @@ export function ProfilePage() {
 
   // PDF Preview states
   const [pdfZoom, setPdfZoom] = useState<number>(100);
-  const [selectedPdfId, setSelectedPdfId] = useState<string>("ENQ-89410");
-  const selectedPdfEnq = enquiries.find((e) => e.id === selectedPdfId) || enquiries[0];
+  const [selectedPdfId, setSelectedPdfId] = useState<string>("");
+  const selectedPdfEnq = enquiries.find((e) => e.id === selectedPdfId) || enquiries[0] || {
+    id: "N/A",
+    title: "Corporate Gifting",
+    category: "General",
+    quantity: 1,
+    budget: "₹50 - ₹100",
+    status: "Draft",
+    createdDate: "",
+    updatedDate: "",
+    notes: ""
+  };
 
   // Parse budget helper
   const parseBudgetRange = (budgetStr: string): [number, number] => {
@@ -158,33 +225,67 @@ export function ProfilePage() {
     });
   };
 
-  const handleSaveEdit = (e: React.FormEvent) => {
+  const handleSaveEdit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingEnquiry) return;
 
-    const now = new Date();
-    const formattedDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(
-      now.getDate()
-    ).padStart(2, "0")} ${String(now.getHours() % 12 || 12).padStart(2, "0")}:${String(
-      now.getMinutes()
-    ).padStart(2, "0")} ${now.getHours() >= 12 ? "PM" : "AM"}`;
+    const baseUrl = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
+    const apiKey = import.meta.env.VITE_CLIENT_API_KEY || "";
+    const token = localStorage.getItem("nexus_token");
 
-    setEnquiries((prev) =>
-      prev.map((enq) =>
-        enq.id === editingEnquiry.id
-          ? {
-              ...enq,
-              title: editForm.title || enq.title,
-              quantity: Number(editForm.quantity) || enq.quantity,
-              budget: editForm.budget || enq.budget,
-              notes: editForm.notes || enq.notes,
-              status: editForm.status as any,
-              updatedDate: formattedDate,
-            }
-          : enq
-      )
-    );
-    setEditingEnquiry(null);
+    if (!token) return;
+
+    try {
+      const response = await fetch(`${baseUrl}/api/v1/user/enquiries/update/${editingEnquiry.id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          "X-API-Key": apiKey,
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          gifting_for: editForm.title || undefined,
+          quantity: editForm.quantity ? Number(editForm.quantity) : undefined,
+          budget: editForm.budget || undefined,
+          message: editForm.notes || undefined
+        })
+      });
+
+      if (response.ok) {
+        const now = new Date();
+        const dateStr = now.toLocaleString("en-IN", {
+          year: "numeric",
+          month: "short",
+          day: "2-digit",
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: true
+        });
+
+        setEnquiries((prev) =>
+          prev.map((enq) =>
+            enq.id === editingEnquiry.id
+              ? {
+                  ...enq,
+                  title: editForm.title || enq.title,
+                  quantity: Number(editForm.quantity) || enq.quantity,
+                  budget: editForm.budget || enq.budget,
+                  notes: editForm.notes || enq.notes,
+                  status: editForm.status as any,
+                  updatedDate: dateStr,
+                }
+              : enq
+          )
+        );
+        setEditingEnquiry(null);
+      } else {
+        const data = await response.json().catch(() => null);
+        alert(data?.detail || "Failed to update enquiry.");
+      }
+    } catch (err) {
+      console.error("Error saving edit:", err);
+      alert("Something went wrong. Please try again.");
+    }
   };
 
   // PDF generation & download trigger
@@ -290,7 +391,7 @@ export function ProfilePage() {
                 </div>
                 <div className="flex items-center gap-2.5 justify-center md:justify-start">
                   <MapPin size={15} className="text-gold-deep dark:text-gold" />
-                  <span>450 Lexington Ave, New York, NY</span>
+                  <span>{profileData.delivery_address}</span>
                 </div>
               </div>
             </div>
@@ -340,19 +441,24 @@ export function ProfilePage() {
                     <div className="grid sm:grid-cols-2 gap-6 text-sm">
                       <div>
                         <span className="block text-xs uppercase tracking-wider text-ink/40 dark:text-paper/40 mb-1">Company Gifting Tier</span>
-                        <strong className="text-gold-deep dark:text-gold font-bold">Corporate Partner</strong>
+                        <strong className="text-gold-deep dark:text-gold font-bold">{profileData.gifting_tier}</strong>
                       </div>
                       <div>
                         <span className="block text-xs uppercase tracking-wider text-ink/40 dark:text-paper/40 mb-1">Account Manager</span>
-                        <strong className="font-semibold">Sarah Jenkins (Corporate Relations)</strong>
+                        <strong className="font-semibold">{profileData.account_manager}</strong>
                       </div>
                       <div>
                         <span className="block text-xs uppercase tracking-wider text-ink/40 dark:text-paper/40 mb-1">Lifetime Spent</span>
-                        <strong className="font-semibold">₹12,45,000.00</strong>
+                        <strong className="font-semibold">
+                          ₹{profileData.lifetime_spent.toLocaleString("en-IN", {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2
+                          })}
+                        </strong>
                       </div>
                       <div>
                         <span className="block text-xs uppercase tracking-wider text-ink/40 dark:text-paper/40 mb-1">Verified Delivery Address</span>
-                        <strong className="font-semibold">450 Lexington Ave, New York, NY 10017</strong>
+                        <strong className="font-semibold">{profileData.delivery_address}</strong>
                       </div>
                     </div>
                   </div>
@@ -453,78 +559,93 @@ export function ProfilePage() {
                     <span className="text-xs text-ink/40 dark:text-paper/40">Total Requests: {enquiries.length}</span>
                   </div>
 
-                  {enquiries.map((enq) => (
-                    <div
-                      key={enq.id}
-                      className="bg-white/60 dark:bg-ink-soft/40 backdrop-blur-md rounded-3xl p-6 border border-ink/5 dark:border-white/5 shadow-sm"
-                    >
-                      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 border-b border-ink/5 dark:border-white/5 pb-4 mb-4">
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <span className="text-[10px] font-bold text-gold uppercase tracking-wider">{enq.id}</span>
-                            <span className="text-xs text-ink/40 dark:text-paper/40">· {enq.category}</span>
-                          </div>
-                          <h4 className="font-semibold text-lg mt-1">{enq.title}</h4>
-                        </div>
-
-                        <div className="flex items-center gap-3">
-                          <span className={cn(
-                            "px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border",
-                            enq.status === "Approved" && "bg-emerald-500/10 text-emerald-500 border-emerald-500/20",
-                            enq.status === "Processing" && "bg-amber-500/10 text-amber-500 border-amber-500/20",
-                            enq.status === "Draft" && "bg-slate-500/10 text-slate-500 border-slate-500/20"
-                          )}>
-                            {enq.status}
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="grid sm:grid-cols-2 md:grid-cols-4 gap-4 text-xs text-ink/70 dark:text-paper/70">
-                        <div>
-                          <span className="block text-[10px] uppercase text-ink/40 dark:text-paper/40 mb-1">Est. Quantity</span>
-                          <strong className="font-semibold text-sm">{enq.quantity} units</strong>
-                        </div>
-                        <div>
-                          <span className="block text-[10px] uppercase text-ink/40 dark:text-paper/40 mb-1">Budget Tier</span>
-                          <strong className="font-semibold text-sm">{enq.budget} / unit</strong>
-                        </div>
-                        <div>
-                          <span className="block text-[10px] uppercase text-ink/40 dark:text-paper/40 mb-1">Created Date</span>
-                          <span className="font-medium text-xs">{enq.createdDate}</span>
-                        </div>
-                        <div>
-                          <span className="block text-[10px] uppercase text-ink/40 dark:text-paper/40 mb-1">Updated Date</span>
-                          <span className="font-semibold text-xs text-gold-deep dark:text-gold">{enq.updatedDate}</span>
-                        </div>
-                      </div>
-
-                      <div className="mt-4 p-4 rounded-xl bg-cloud/50 dark:bg-ink-soft/60 border border-ink/5 dark:border-white/5">
-                        <span className="block text-[10px] uppercase font-bold text-ink/40 dark:text-paper/40 mb-1.5">Enquiry Instructions</span>
-                        <p className="text-xs leading-relaxed italic">"{enq.notes}"</p>
-                      </div>
-
-                      <div className="flex gap-2.5 mt-6 border-t border-ink/5 dark:border-white/5 pt-4">
-                        <button
-                          onClick={() => openEditModal(enq)}
-                          className="inline-flex items-center gap-1.5 text-xs text-gold-deep dark:text-gold font-semibold hover:underline cursor-pointer"
-                        >
-                          <Edit3 size={13} /> Edit Enquiry
-                        </button>
-                        <button
-                          onClick={() => handleDownloadPDF(enq.id)}
-                          className="inline-flex items-center gap-1.5 text-xs text-ink/65 dark:text-paper/65 font-semibold hover:text-ink dark:hover:text-paper cursor-pointer ml-auto"
-                        >
-                          <Download size={13} /> Download PDF
-                        </button>
-                        <button
-                          onClick={() => handleOpenPrintPreview(enq.id)}
-                          className="inline-flex items-center gap-1.5 text-xs text-ink/65 dark:text-paper/65 font-semibold hover:text-ink dark:hover:text-paper cursor-pointer"
-                        >
-                          <Printer size={13} /> Print/View PDF
-                        </button>
-                      </div>
+                  {loadingEnquiries ? (
+                    <div className="flex flex-col items-center justify-center py-16 text-center bg-white/60 dark:bg-ink-soft/40 backdrop-blur-md rounded-3xl border border-ink/5 dark:border-white/5 shadow-sm">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gold-deep dark:border-gold"></div>
+                      <p className="mt-4 text-sm text-ink/50 dark:text-paper/50 font-medium">Loading enquiries...</p>
                     </div>
-                  ))}
+                  ) : enquiries.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-16 text-center bg-white/60 dark:bg-ink-soft/40 backdrop-blur-md rounded-3xl border border-ink/5 dark:border-white/5 shadow-sm">
+                      <ShoppingBag size={48} className="text-ink/20 dark:text-paper/20 mb-4 animate-bounce" />
+                      <p className="text-sm text-ink/55 dark:text-paper/55">You haven't submitted any corporate enquiries yet.</p>
+                      <Link to="/collections" className="mt-4 inline-flex items-center gap-2 rounded-xl bg-gold text-ink font-semibold px-5 py-2.5 text-xs hover:bg-gold-deep hover:shadow-gold-glow transition-all">
+                        Browse Collections
+                      </Link>
+                    </div>
+                  ) : (
+                    enquiries.map((enq) => (
+                      <div
+                        key={enq.id}
+                        className="bg-white/60 dark:bg-ink-soft/40 backdrop-blur-md rounded-3xl p-6 border border-ink/5 dark:border-white/5 shadow-sm"
+                      >
+                        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 border-b border-ink/5 dark:border-white/5 pb-4 mb-4">
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-[10px] font-bold text-gold uppercase tracking-wider">{enq.id}</span>
+                              <span className="text-xs text-ink/40 dark:text-paper/40">· {enq.category}</span>
+                            </div>
+                            <h4 className="font-semibold text-lg mt-1">{enq.title}</h4>
+                          </div>
+
+                          <div className="flex items-center gap-3">
+                            <span className={cn(
+                              "px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border",
+                              enq.status === "Approved" && "bg-emerald-500/10 text-emerald-500 border-emerald-500/20",
+                              enq.status === "Processing" && "bg-amber-500/10 text-amber-500 border-amber-500/20",
+                              enq.status === "Draft" && "bg-slate-500/10 text-slate-500 border-slate-500/20"
+                            )}>
+                              {enq.status}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="grid sm:grid-cols-2 md:grid-cols-4 gap-4 text-xs text-ink/70 dark:text-paper/70">
+                          <div>
+                            <span className="block text-[10px] uppercase text-ink/40 dark:text-paper/40 mb-1">Est. Quantity</span>
+                            <strong className="font-semibold text-sm">{enq.quantity} units</strong>
+                          </div>
+                          <div>
+                            <span className="block text-[10px] uppercase text-ink/40 dark:text-paper/40 mb-1">Budget Tier</span>
+                            <strong className="font-semibold text-sm">{enq.budget} / unit</strong>
+                          </div>
+                          <div>
+                            <span className="block text-[10px] uppercase text-ink/40 dark:text-paper/40 mb-1">Created Date</span>
+                            <span className="font-medium text-xs">{enq.createdDate}</span>
+                          </div>
+                          <div>
+                            <span className="block text-[10px] uppercase text-ink/40 dark:text-paper/40 mb-1">Updated Date</span>
+                            <span className="font-semibold text-xs text-gold-deep dark:text-gold">{enq.updatedDate}</span>
+                          </div>
+                        </div>
+
+                        <div className="mt-4 p-4 rounded-xl bg-cloud/50 dark:bg-ink-soft/60 border border-ink/5 dark:border-white/5">
+                          <span className="block text-[10px] uppercase font-bold text-ink/40 dark:text-paper/40 mb-1.5">Enquiry Instructions</span>
+                          <p className="text-xs leading-relaxed italic">"{enq.notes}"</p>
+                        </div>
+
+                        <div className="flex gap-2.5 mt-6 border-t border-ink/5 dark:border-white/5 pt-4">
+                          <button
+                            onClick={() => openEditModal(enq)}
+                            className="inline-flex items-center gap-1.5 text-xs text-gold-deep dark:text-gold font-semibold hover:underline cursor-pointer"
+                          >
+                            <Edit3 size={13} /> Edit Enquiry
+                          </button>
+                          <button
+                            onClick={() => handleDownloadPDF(enq.id)}
+                            className="inline-flex items-center gap-1.5 text-xs text-ink/65 dark:text-paper/65 font-semibold hover:text-ink dark:hover:text-paper cursor-pointer ml-auto"
+                          >
+                            <Download size={13} /> Download PDF
+                          </button>
+                          <button
+                            onClick={() => handleOpenPrintPreview(enq.id)}
+                            className="inline-flex items-center gap-1.5 text-xs text-ink/65 dark:text-paper/65 font-semibold hover:text-ink dark:hover:text-paper cursor-pointer"
+                          >
+                            <Printer size={13} /> Print/View PDF
+                          </button>
+                        </div>
+                      </div>
+                    ))
+                  )}
                 </motion.div>
               )}
 
@@ -621,7 +742,7 @@ export function ProfilePage() {
                     </div>
                   </div>
 
-                  <div>
+                  {/* <div>
                     <label className="block text-xs uppercase tracking-wider text-ink/40 dark:text-paper/40 mb-1.5 font-bold">
                       Enquiry Status
                     </label>
@@ -634,7 +755,7 @@ export function ProfilePage() {
                       <option value="Processing">Processing</option>
                       <option value="Draft">Draft</option>
                     </select>
-                  </div>
+                  </div> */}
 
                   <div>
                     <label className="block text-xs uppercase tracking-wider text-ink/40 dark:text-paper/40 mb-1.5 font-bold">

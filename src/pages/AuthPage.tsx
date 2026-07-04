@@ -69,9 +69,16 @@ export default function LuxuryLogin() {
     e.preventDefault();
     setError("");
 
-    if (!email || !password) {
+    if (!email.trim() || !password) {
       setStatus("error");
       setError("Please enter both your email and password.");
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      setStatus("error");
+      setError("Please enter a valid email address.");
       return;
     }
 

@@ -82,11 +82,36 @@ export default function LuxuryRegister() {
     e.preventDefault();
     setError("");
 
-    if (!form.name || !form.phone || !form.email || !form.password) {
+    if (!form.name.trim() || !form.phone.trim() || !form.email.trim() || !form.password) {
       setStatus("error");
       setError("Please fill in every field to create your account.");
       return;
     }
+
+    // Name validation: alphabetic characters only
+    const nameRegex = /^[A-Za-z\s]+$/;
+    if (!nameRegex.test(form.name)) {
+      setStatus("error");
+      setError("Name must contain only alphabetic characters.");
+      return;
+    }
+
+    // Phone validation: exactly 10 digits
+    const phoneRegex = /^\d{10}$/;
+    if (!phoneRegex.test(form.phone)) {
+      setStatus("error");
+      setError("Phone number must contain only numbers and be exactly 10 digits.");
+      return;
+    }
+
+    // Email validation: standard email pattern
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(form.email)) {
+      setStatus("error");
+      setError("Please enter a valid email address.");
+      return;
+    }
+
     if (form.password.length < 8) {
       setStatus("error");
       setError("Your password should be at least 8 characters.");
@@ -173,6 +198,9 @@ export default function LuxuryRegister() {
                     autoComplete="name"
                     value={form.name}
                     onChange={update("name")}
+                    onInput={(e) => {
+                      e.currentTarget.value = e.currentTarget.value.replace(/[^A-Za-z\s]/g, "");
+                    }}
                     placeholder="John"
                     className="h-12 w-full rounded-xl border border-cream/40 bg-transparent pl-12 pr-4 font-sans text-[16px] text-cream placeholder:text-cream/60 outline-none transition-colors duration-200 focus:border-gold focus:ring-1 focus:ring-gold/50"
                   />
@@ -192,9 +220,13 @@ export default function LuxuryRegister() {
                     id="phone"
                     type="tel"
                     autoComplete="tel"
+                    maxLength={10}
                     value={form.phone}
                     onChange={update("phone")}
-                    placeholder="+91 98765 43210"
+                    onInput={(e) => {
+                      e.currentTarget.value = e.currentTarget.value.replace(/\D/g, "");
+                    }}
+                    placeholder="9876543210"
                     className="h-12 w-full rounded-xl border border-cream/40 bg-transparent pl-12 pr-4 font-sans text-[16px] text-cream placeholder:text-cream/60 outline-none transition-colors duration-200 focus:border-gold focus:ring-1 focus:ring-gold/50"
                   />
                 </div>
