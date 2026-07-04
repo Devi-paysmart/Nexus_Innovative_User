@@ -77,7 +77,8 @@ export function ContactPage() {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "X-API-Key": API_KEY,
+            "X-API-Key": API_KEY || "",
+            "Authorization": `Bearer ${localStorage.getItem("nexus_token") || ""}`,
           },
           body: JSON.stringify(payload),
         }

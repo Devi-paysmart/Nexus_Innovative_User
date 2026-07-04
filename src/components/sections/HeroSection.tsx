@@ -237,7 +237,7 @@ export function HeroSection() {
                     {/* Main image container */}
                     <div className="relative z-10 w-full flex justify-center">
                         <img
-                            src="/a457e9573b279691b20cd59500dfa37b-removebg-preview.png"
+                            src="Designer-BG.png"
                             alt="Premium Corporate Gift"
                             className="mx-auto h-auto w-full max-w-[460px] sm:max-w-[580px] lg:max-w-[760px] drop-shadow-[0_20px_50px_rgba(0,0,0,0.18)] dark:drop-shadow-[0_20px_50px_rgba(212,175,55,0.3)]"
                             loading="eager"

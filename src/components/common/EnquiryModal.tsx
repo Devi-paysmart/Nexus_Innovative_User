@@ -76,7 +76,11 @@ export function EnquiryModal({ onClose, categoryId }: EnquiryModalProps) {
 
       const res = await fetch(`${API_BASE_URL}/api/v1/user/products/category_enquiry`, {
         method: "POST",
-        headers: { "Content-Type": "application/json", "X-API-Key": API_KEY },
+        headers: { 
+          "Content-Type": "application/json", 
+          "X-API-Key": API_KEY || "",
+          "Authorization": `Bearer ${localStorage.getItem("nexus_token") || ""}`,
+        },
         body: JSON.stringify(payload),
       });
 

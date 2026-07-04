@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { ArrowLeft, Minus, Plus, Trash2, ShoppingBag, Send, X, CheckCircle2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useCart } from "../context/CartContext";
@@ -25,8 +25,18 @@ const enquirySchema = z.object({
 type EnquiryForm = z.infer<typeof enquirySchema>;
 
 export function CartPage() {
+  const navigate = useNavigate();
   const { items, removeFromCart, updateQuantity, clearCart, totalItems } = useCart();
   const [enquiryOpen, setEnquiryOpen] = useState(false);
+
+  const handleEnquireClick = () => {
+    const token = localStorage.getItem("nexus_token");
+    if (!token) {
+      navigate("/login");
+    } else {
+      setEnquiryOpen(true);
+    }
+  };
 
   return (
     <PageTransition>
@@ -60,7 +70,7 @@ export function CartPage() {
                   <Trash2 size={15} /> Clear all
                 </button>
                 <button
-                  onClick={() => setEnquiryOpen(true)}
+                  onClick={handleEnquireClick}
                   className="inline-flex items-center gap-2 rounded-xl bg-gold text-ink px-6 py-3.5 text-sm font-medium transition-all hover:bg-gold-deep dark:hover:bg-gold-light hover:shadow-gold-glow cursor-pointer shadow-luxe-sm"
                 >
                   <Send size={15} /> Enquire Now
@@ -166,7 +176,7 @@ export function CartPage() {
                   </p>
                 </div>
                 <button
-                  onClick={() => setEnquiryOpen(true)}
+                  onClick={handleEnquireClick}
                   className="inline-flex items-center gap-2 rounded-xl bg-gold text-ink px-8 py-4 text-sm font-medium transition-all hover:bg-gold-deep dark:hover:bg-gold-light hover:shadow-gold-glow cursor-pointer shadow-luxe-sm flex-shrink-0"
                 >
                   <Send size={16} /> Enquire Now
@@ -242,7 +252,8 @@ function CartEnquiryModal({
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "X-API-Key": API_KEY,
+            "X-API-Key": API_KEY || "",
+            "Authorization": `Bearer ${localStorage.getItem("nexus_token") || ""}`,
           },
           body: JSON.stringify(payload),
         }
