@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { PageTransition } from "../components/common/PageTransition";
 import { SectionReveal } from "../components/common/SectionReveal";
@@ -9,9 +9,15 @@ import { ProductCardImageCarousel } from "../components/gallery/GalleryComponent
 export function CollectionsPage() {
   const [categories, setCategories] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState("all");
   const [products, setProducts] = useState<any[]>([]);
   const [fetching, setFetching] = useState(false);
+
+  const location = useLocation();
+  const navigate = useNavigate();
+  const queryParams = new URLSearchParams(location.search);
+  const categoriesQuery = queryParams.get("categories");
+  const selectedSlugs = categoriesQuery ? categoriesQuery.split(",") : [];
+  const searchQuery = queryParams.get("search") || "";
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -59,9 +65,22 @@ export function CollectionsPage() {
         const filteredProducts = dbProducts
           .filter((p: any) => p.status === "active")
           .filter((p: any) => {
-            if (activeTab === "all") return true;
-            const selectedCat = mappedCategories.find((c: any) => c.slug === activeTab);
-            return selectedCat ? p.category_id === selectedCat.id : false;
+            if (selectedSlugs.length > 0) {
+              const matchedCats = mappedCategories.filter((c: any) => selectedSlugs.includes(c.slug));
+              const matchedIds = matchedCats.map((c: any) => c.id);
+              if (!matchedIds.includes(p.category_id)) return false;
+            }
+            if (searchQuery.trim()) {
+              const q = searchQuery.toLowerCase().trim();
+              const cat = dbCategories.find((c: any) => c.id === p.category_id);
+              const catName = cat ? cat.name.toLowerCase() : "";
+              return (
+                p.name.toLowerCase().includes(q) ||
+                p.description.toLowerCase().includes(q) ||
+                catName.includes(q)
+              );
+            }
+            return true;
           })
           .map((p: any) => {
             const cat = dbCategories.find((c: any) => c.id === p.category_id);
@@ -89,7 +108,7 @@ export function CollectionsPage() {
     };
 
     fetchProducts();
-  }, [activeTab]);
+  }, [location.search]);
 
 
 
@@ -121,10 +140,10 @@ export function CollectionsPage() {
             <>
               <div className="mt-10 flex flex-wrap gap-2">
                 <button
-                  onClick={() => setActiveTab("all")}
+                  onClick={() => navigate("/collections")}
                   className={cn(
                     "rounded-xl px-5 py-2 text-sm font-medium transition-colors",
-                    activeTab === "all"
+                    selectedSlugs.length === 0
                       ? "bg-ink text-paper"
                       : "border border-ink/10 text-ink/70 hover:border-gold-deep dark:border-paper/15 dark:text-paper/70"
                   )}
@@ -134,10 +153,10 @@ export function CollectionsPage() {
                 {categories.map((c) => (
                   <button
                     key={c.slug}
-                    onClick={() => setActiveTab(c.slug)}
+                    onClick={() => navigate(`/collections?categories=${c.slug}`)}
                     className={cn(
                       "rounded-xl px-5 py-2 text-sm font-medium transition-colors",
-                      activeTab === c.slug
+                      selectedSlugs.includes(c.slug)
                         ? "bg-ink text-paper"
                         : "border border-ink/10 text-ink/70 hover:border-gold-deep dark:border-paper/15 dark:text-paper/70"
                     )}

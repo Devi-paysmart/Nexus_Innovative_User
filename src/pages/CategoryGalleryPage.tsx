@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link, useParams, useNavigate } from "react-router-dom";
+import { Link, useParams, useNavigate, useLocation } from "react-router-dom";
 import { ArrowLeft, Plus, Check } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import type { Product } from "../data/categories";
@@ -10,6 +10,7 @@ import { useCart } from "../context/CartContext";
 export function CategoryGalleryPage() {
   const { category: slug } = useParams<{ category: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const { addToCart } = useCart();
   const [addedIds, setAddedIds] = useState<Set<string>>(new Set());
 
@@ -17,6 +18,16 @@ export function CategoryGalleryPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<Product | null>(null);
+
+  useEffect(() => {
+    if (location.state && location.state.openProduct && products.length > 0) {
+      const prod = products.find((p) => p.id === String(location.state.openProduct));
+      if (prod) {
+        setSelected(prod);
+        window.history.replaceState({}, document.title);
+      }
+    }
+  }, [location.state, products]);
 
   useEffect(() => {
     const fetchCategoryAndProducts = async () => {
@@ -166,7 +177,14 @@ export function CategoryGalleryPage() {
             
             <div className="flex items-center gap-3 flex-shrink-0">
               <button
-                onClick={() => navigate("/contact", { state: { categoryId: category.id } })}
+                onClick={() => {
+                  const token = localStorage.getItem("nexus_token");
+                  if (!token) {
+                    navigate("/login");
+                  } else {
+                    navigate("/contact", { state: { categoryId: category.id } });
+                  }
+                }}
                 className="inline-flex items-center gap-2 rounded-xl bg-gold text-ink px-6 py-3.5 text-sm font-medium transition-all hover:bg-gold-deep dark:hover:bg-gold-light hover:shadow-gold-glow cursor-pointer shadow-luxe-sm"
               >
                 {category.name} Enquiry

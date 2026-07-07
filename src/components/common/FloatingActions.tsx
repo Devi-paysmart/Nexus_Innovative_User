@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Mail } from "lucide-react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { EnquiryModal } from "./EnquiryModal";
 
 import whatsappLogo from "../../../logo/whatsapp-removebg-preview.png";
@@ -9,6 +9,7 @@ import whatsappLogo from "../../../logo/whatsapp-removebg-preview.png";
 export function FloatingActions() {
   const [modalOpen, setModalOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
 
   const shouldHideEnquireButton =
     (location.pathname.startsWith("/collections/") && location.pathname !== "/collections") ||
@@ -31,7 +32,14 @@ export function FloatingActions() {
         {!shouldHideEnquireButton && (
           <motion.button
             aria-label="Open enquiry form"
-            onClick={() => setModalOpen(true)}
+            onClick={() => {
+              const token = localStorage.getItem("nexus_token");
+              if (!token) {
+                navigate("/login");
+              } else {
+                setModalOpen(true);
+              }
+            }}
             animate={{ scale: [1, 1.06, 1] }}
             transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
             className="flex items-center gap-2 rounded-full bg-gold text-ink px-5 py-3.5 text-sm font-medium transition-all hover:bg-gold-deep dark:hover:bg-gold-light hover:shadow-gold-glow cursor-pointer shadow-luxe-sm"

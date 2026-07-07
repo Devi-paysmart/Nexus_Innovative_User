@@ -1,0 +1,11 @@
+{
+	"folders": [
+		{
+			"path": "../.."
+		},
+		{
+			"path": "../../../nexus_backend"
+		}
+	],
+	"settings": {}
+}

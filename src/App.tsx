@@ -21,6 +21,10 @@ import { TestimonialsPage } from "./pages/TestimonialsPage";
 import { ContactPage } from "./pages/ContactPage";
 import { CareersPage } from "./pages/CareersPage";
 import { CartPage } from "./pages/CartPage";
+import { ProfilePage } from "./pages/ProfilePage";
+import { QuotationPDFPage } from "./pages/QuotationPDFPage";
+import AuthPage from "./pages/AuthPage";
+import RegisterPage from "./pages/RegisterPage";
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -63,6 +67,8 @@ function AnimatedRoutes() {
         <Route path="/contact" element={<ContactPage />} />
         <Route path="/careers" element={<CareersPage />} />
         <Route path="/cart" element={<CartPage />} />
+        <Route path="/profile" element={<ProfilePage />} />
+        <Route path="/register" element={<RegisterPage />} />
       </Routes>
     </AnimatePresence>
   );
@@ -77,9 +83,21 @@ function App() {
         <CartProvider>
           <BrowserRouter>
             <ScrollToTop />
-            <MainLayout>
-              <AnimatedRoutes />
-            </MainLayout>
+            <Routes>
+              <Route path="/quotation/:id" element={<QuotationPDFPage />} />
+              <Route path="/signin" element={<AuthPage />} />
+              <Route path="/login" element={<AuthPage />} />
+              <Route path="/signup" element={<RegisterPage />} />
+              <Route path="/register" element={<RegisterPage />} />
+              <Route
+                path="/*"
+                element={
+                  <MainLayout>
+                    <AnimatedRoutes />
+                  </MainLayout>
+                }
+              />
+            </Routes>
           </BrowserRouter>
         </CartProvider>
       </CategoriesProvider>
