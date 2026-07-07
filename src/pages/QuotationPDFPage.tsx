@@ -9,14 +9,12 @@ export function QuotationPDFPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [enquiry, setEnquiry] = useState<Enquiry | null>(null);
-  const [isLibraryLoaded, setIsLibraryLoaded] = useState(false);
 
   // Load html2pdf CDN script
   useEffect(() => {
     const script = document.createElement("script");
     script.src = "https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js";
     script.async = true;
-    script.onload = () => setIsLibraryLoaded(true);
     document.body.appendChild(script);
     return () => {
       document.body.removeChild(script);

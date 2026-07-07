@@ -377,7 +377,7 @@ export function CartEnquiryModal({
     }
   };
 
-  const generateAndUploadPDF = async (pdfData: EnquiryPDFData, enquiryCode: string) => {
+  const generateAndUploadPDF = async (_pdfData: EnquiryPDFData, enquiryCode: string) => {
     try {
       const element = document.getElementById("enquiry-pdf-content");
       if (!element) {

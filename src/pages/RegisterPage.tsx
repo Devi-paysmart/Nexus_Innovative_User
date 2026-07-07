@@ -1,4 +1,5 @@
-import { useState, FormEvent, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
+import type { FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
 /**
@@ -84,7 +85,7 @@ export default function LuxuryRegister() {
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   useEffect(() => {
-    let timer: NodeJS.Timeout;
+    let timer: any;
     if (showOtpModal && countdown > 0) {
       timer = setTimeout(() => setCountdown((c) => c - 1), 1000);
     }
@@ -491,7 +492,7 @@ export default function LuxuryRegister() {
                 {otpDigits.map((digit, idx) => (
                   <input
                     key={idx}
-                    ref={(el) => (inputRefs.current[idx] = el)}
+                    ref={(el) => { inputRefs.current[idx] = el; }}
                     type="text"
                     inputMode="numeric"
                     pattern="[0-9]*"

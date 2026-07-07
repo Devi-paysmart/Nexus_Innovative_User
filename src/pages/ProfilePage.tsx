@@ -1,21 +1,15 @@
-import { useState, useEffect, useRef } from "react";
-import { Link, useNavigate, useLocation } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  User,
   Mail,
   Phone,
-  MapPin,
-  Building,
   ShoppingBag,
   History,
-  FileText,
   Edit3,
   Download,
   Printer,
   X,
-  Check,
-  Briefcase,
   ArrowLeft,
   LogOut,
 } from "lucide-react";
@@ -24,7 +18,6 @@ import { PageTransition } from "../components/common/PageTransition";
 import { cn } from "../utils/cn";
 import { QuotationSheet } from "../components/profile/QuotationSheet";
 import type { Enquiry } from "../components/profile/QuotationSheet";
-import { EnquiryModal } from "../components/common/EnquiryModal";
 import { CartEnquiryModal } from "./CartPage";
 import { supabase } from "../supabase";
 import { CustomDropdown } from "../components/common/CustomDropdown";
@@ -32,7 +25,7 @@ import { EnquiryPDFTemplate, type EnquiryPDFData } from "../components/common/En
 
 export function ProfilePage() {
   const navigate = useNavigate();
-  const { items: cartItems, updateQuantity, removeFromCart, clearCart } = useCart();
+  const { items: cartItems, clearCart } = useCart();
   const [activeTab, setActiveTab] = useState<"cart" | "enquiries">("enquiries");
 
   // Read current user session
@@ -112,18 +105,7 @@ export function ProfilePage() {
   const [loadingEnquiries, setLoadingEnquiries] = useState(true);
   const [enquiryOpen, setEnquiryOpen] = useState(false);
 
-  const handleEnquireClick = () => {
-    setEnquiryOpen(true);
-  };
 
-  // Derive profile summary details from latest enquiry
-  const latestEnquiry = enquiries[0];
-  const profileSummary = {
-    companyName: latestEnquiry?.companyName,
-    budget: latestEnquiry?.budget,
-    city: latestEnquiry?.city,
-    mobile: latestEnquiry?.mobile || currentUser.phone
-  };
 
   // Fetch enquiries from backend
   useEffect(() => {
@@ -213,7 +195,7 @@ export function ProfilePage() {
   const [pdfEnquiryData, setPdfEnquiryData] = useState<EnquiryPDFData | null>(null);
 
   // PDF Preview states
-  const [pdfZoom, setPdfZoom] = useState<number>(100);
+
   const [selectedPdfId, setSelectedPdfId] = useState<string>("");
   const selectedPdfEnq = enquiries.find((e) => e.id === selectedPdfId) || enquiries[0] || {
     id: "N/A",
@@ -288,7 +270,7 @@ export function ProfilePage() {
     });
   };
 
-  const generateAndUploadPDF = async (pdfData: EnquiryPDFData, enquiryCode: string) => {
+  const generateAndUploadPDF = async (_pdfData: EnquiryPDFData, enquiryCode: string) => {
     try {
       const element = document.getElementById("edit-enquiry-pdf-content");
       if (!element) {
@@ -332,7 +314,7 @@ export function ProfilePage() {
       const blob = pdf.output("blob");
 
       // Upload to Supabase Storage
-      const { error, data: uploadData } = await supabase.storage
+      const { error } = await supabase.storage
         .from("enquiry-pdfs")
         .upload(`enquiries/${filename}`, blob, {
           contentType: "application/pdf",
@@ -678,7 +660,7 @@ export function ProfilePage() {
               <div className="w-24 h-24 rounded-2xl bg-gradient-to-tr from-gold-deep to-gold-light flex items-center justify-center text-ink font-bold text-3xl shadow-lg border border-white/20">
                 {currentUser.name
                   .split(" ")
-                  .map((n) => n[0])
+                  .map((n: string) => n[0])
                   .join("")
                   .toUpperCase()
                   .slice(0, 2)}
