@@ -1,4 +1,4 @@
-import { useState, FormEvent } from "react";
+import { useState, FormEvent, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
 /**
@@ -75,8 +75,44 @@ export default function LuxuryRegister() {
   const [status, setStatus] = useState<"idle" | "loading" | "error">("idle");
   const [error, setError] = useState("");
 
+  // OTP Verification States
+  const [showOtpModal, setShowOtpModal] = useState(false);
+  const [otpDigits, setOtpDigits] = useState(["", "", "", "", "", ""]);
+  const [otpStatus, setOtpStatus] = useState<"idle" | "verifying" | "success" | "error">("idle");
+  const [otpError, setOtpError] = useState("");
+  const [countdown, setCountdown] = useState(60);
+  const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
+
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (showOtpModal && countdown > 0) {
+      timer = setTimeout(() => setCountdown((c) => c - 1), 1000);
+    }
+    return () => {
+      if (timer) clearTimeout(timer);
+    };
+  }, [showOtpModal, countdown]);
+
   const update = (field: keyof RegisterForm) => (e: React.ChangeEvent<HTMLInputElement>) =>
     setForm((f) => ({ ...f, [field]: e.target.value }));
+
+  const handleDigitChange = (index: number, val: string) => {
+    const newVal = val.replace(/[^0-9]/g, "");
+    const newDigits = [...otpDigits];
+    newDigits[index] = newVal.slice(-1);
+    setOtpDigits(newDigits);
+
+    // Auto-focus next input
+    if (newVal && index < 5) {
+      inputRefs.current[index + 1]?.focus();
+    }
+  };
+
+  const handleKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Backspace" && !otpDigits[index] && index > 0) {
+      inputRefs.current[index - 1]?.focus();
+    }
+  };
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -123,7 +159,87 @@ export default function LuxuryRegister() {
       const baseUrl = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
       const apiKey = import.meta.env.VITE_CLIENT_API_KEY || "";
       
-      const response = await fetch(`${baseUrl}/api/v1/user/auth/register`, {
+      // Request OTP to email
+      const response = await fetch(`${baseUrl}/api/v1/user/auth/send-otp`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-API-Key": apiKey,
+        },
+        body: JSON.stringify({
+          email: form.email,
+          name: form.name,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null);
+        throw new Error(errorData?.detail || "Failed to send verification code.");
+      }
+
+      setStatus("idle");
+      setShowOtpModal(true);
+      setCountdown(60);
+      setOtpDigits(["", "", "", "", "", ""]);
+      setOtpStatus("idle");
+      setOtpError("");
+      
+      // Focus first input box after render
+      setTimeout(() => {
+        inputRefs.current[0]?.focus();
+      }, 100);
+
+    } catch (err: any) {
+      setStatus("error");
+      setError(err.message || "We couldn't create your account. Please try again.");
+    }
+  };
+
+  const handleVerifyOtp = async (e: FormEvent) => {
+    e.preventDefault();
+    setOtpError("");
+    const enteredOtp = otpDigits.join("");
+    if (enteredOtp.length < 6) {
+      setOtpStatus("error");
+      setOtpError("Please enter all 6 digits of the code.");
+      return;
+    }
+
+    setOtpStatus("verifying");
+    try {
+      const baseUrl = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
+      const apiKey = import.meta.env.VITE_CLIENT_API_KEY || "";
+
+      // Step 1: Call verify-otp endpoint
+      const verifyRes = await fetch(`${baseUrl}/api/v1/user/auth/verify-otp`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-API-Key": apiKey,
+        },
+        body: JSON.stringify({
+          email: form.email,
+          otp: enteredOtp,
+        }),
+      });
+
+      if (!verifyRes.ok) {
+        const errData = await verifyRes.json().catch(() => null);
+        throw new Error(errData?.detail || "OTP verification failed.");
+      }
+
+      const verifyData = await verifyRes.json();
+      if (!verifyData.success) {
+        throw new Error(verifyData.message || "Invalid OTP code. Please try again.");
+      }
+
+      setOtpStatus("success");
+
+      // Step 2: Call register user
+      setStatus("loading");
+      setShowOtpModal(false);
+
+      const registerRes = await fetch(`${baseUrl}/api/v1/user/auth/register`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -137,16 +253,56 @@ export default function LuxuryRegister() {
         }),
       });
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => null);
-        throw new Error(errorData?.detail || "Registration failed.");
+      if (!registerRes.ok) {
+        const errorData = await registerRes.json().catch(() => null);
+        throw new Error(errorData?.detail || "Registration failed after OTP verification.");
       }
 
       setStatus("idle");
       navigate("/login");
     } catch (err: any) {
-      setStatus("error");
-      setError(err.message || "We couldn't create your account. Please try again.");
+      setOtpStatus("error");
+      setOtpError(err.message || "Verification failed. Please check the code and try again.");
+      setStatus("idle");
+    }
+  };
+
+  const handleResendOtp = async () => {
+    if (countdown > 0) return;
+    
+    setOtpError("");
+    setOtpStatus("idle");
+    setOtpDigits(["", "", "", "", "", ""]);
+    
+    try {
+      const baseUrl = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
+      const apiKey = import.meta.env.VITE_CLIENT_API_KEY || "";
+      
+      const response = await fetch(`${baseUrl}/api/v1/user/auth/send-otp`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-API-Key": apiKey,
+        },
+        body: JSON.stringify({
+          email: form.email,
+          name: form.name,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null);
+        throw new Error(errorData?.detail || "Failed to resend verification code.");
+      }
+
+      setCountdown(60);
+      setOtpError("A new verification code has been sent.");
+      setTimeout(() => {
+        inputRefs.current[0]?.focus();
+      }, 100);
+    } catch (err: any) {
+      setOtpStatus("error");
+      setOtpError(err.message || "Failed to resend code. Please try again later.");
     }
   };
 
@@ -311,10 +467,96 @@ export default function LuxuryRegister() {
         </div>
       </div>
 
+      {showOtpModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-md bg-aubergine/70 transition-all duration-300 animate-[fadeIn_0.3s_ease-out]">
+          <div className="relative w-full max-w-sm overflow-hidden rounded-2xl border border-gold/30 bg-aubergine/95 p-8 shadow-2xl">
+            {/* Corner gold borders */}
+            <div className="absolute top-0 left-0 w-4 h-4 border-t border-l border-gold/60" />
+            <div className="absolute top-0 right-0 w-4 h-4 border-t border-r border-gold/60" />
+            <div className="absolute bottom-0 left-0 w-4 h-4 border-b border-l border-gold/60" />
+            <div className="absolute bottom-0 right-0 w-4 h-4 border-b border-r border-gold/60" />
+
+            <div className="text-center">
+              <h2 className="font-display text-2xl font-bold tracking-tight text-cream">
+                Verify Your Email
+              </h2>
+              <p className="mt-2 text-sm text-cream/70 font-sans">
+                A verification code has been sent to
+              </p>
+              <p className="mt-1 font-sans text-sm font-semibold text-gold">{form.email}</p>
+            </div>
+
+            <form onSubmit={handleVerifyOtp} className="mt-8 space-y-6">
+              <div className="flex justify-center gap-2">
+                {otpDigits.map((digit, idx) => (
+                  <input
+                    key={idx}
+                    ref={(el) => (inputRefs.current[idx] = el)}
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    maxLength={1}
+                    value={digit}
+                    onChange={(e) => handleDigitChange(idx, e.target.value)}
+                    onKeyDown={(e) => handleKeyDown(idx, e)}
+                    className="h-12 w-10 rounded-lg border border-cream/35 bg-transparent text-center font-sans text-lg font-bold text-cream focus:border-gold focus:ring-1 focus:ring-gold/50 outline-none transition-all duration-200"
+                  />
+                ))}
+              </div>
+
+              {otpError && (
+                <p role="alert" aria-live="polite" className={`text-center font-sans text-sm ${otpStatus === "error" ? "text-[#F0A8B4]" : "text-gold-soft"}`}>
+                  {otpError}
+                </p>
+              )}
+
+              <button
+                type="submit"
+                disabled={otpStatus === "verifying" || otpDigits.some((d) => !d)}
+                className="group relative h-12 w-full overflow-hidden bg-gradient-to-r from-gold via-gold-soft to-gold font-sans text-sm font-semibold uppercase tracking-[0.2em] text-aubergine transition-transform duration-200 hover:scale-[1.01] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <span className="relative z-10">
+                  {otpStatus === "verifying" ? "Verifying…" : "Verify & Register"}
+                </span>
+                <span className="absolute inset-0 -translate-x-full bg-white/25 transition-transform duration-500 group-hover:translate-x-full" />
+              </button>
+
+              <div className="flex flex-col items-center justify-center gap-2 pt-2 text-xs">
+                {countdown > 0 ? (
+                  <p className="text-cream/55 font-sans">
+                    Resend code in <span className="font-semibold text-gold">{countdown}s</span>
+                  </p>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleResendOtp}
+                    className="font-sans font-medium text-gold underline underline-offset-4 hover:text-gold-soft"
+                  >
+                    Resend Code
+                  </button>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => setShowOtpModal(false)}
+                  className="mt-2 font-sans text-cream/40 hover:text-cream transition-colors duration-200"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       <style>{`
         @keyframes fadeUp {
           from { opacity: 0; transform: translateY(16px); }
           to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
         }
         @media (prefers-reduced-motion: reduce) {
           * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }

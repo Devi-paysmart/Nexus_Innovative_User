@@ -236,10 +236,10 @@ export function Navbar() {
                 className="rounded-full border border-ink/10 bg-ink/5 dark:border-white/10 dark:bg-white/5 pl-9 pr-4 py-1.5 focus:border-gold-deep outline-none text-xs text-ink dark:text-paper w-40 focus:w-52 transition-all duration-300 placeholder:text-ink/40 dark:placeholder:text-paper/40"
               />
             </div>
-            
+
             {/* Search Dropdown */}
             {searchOpen && (
-              <div 
+              <div
                 className="absolute left-0 top-full mt-3 w-64 rounded-2xl p-4 shadow-luxe bg-white/95 dark:bg-ink-soft/98 backdrop-blur-xl border border-ink/5 dark:border-white/10 flex flex-col gap-4 z-[100] text-ink dark:text-paper"
               >
                 {/* Header with Select All */}
@@ -255,7 +255,7 @@ export function Navbar() {
                     Select All
                   </label>
                 </div>
-                
+
                 {/* Categories List */}
                 <div className="overflow-y-auto max-h-[140px] space-y-2.5 pr-1">
                   {filteredCategories.length === 0 ? (

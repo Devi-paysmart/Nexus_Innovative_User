@@ -10,6 +10,12 @@ export interface Enquiry {
   createdDate: string;
   updatedDate: string;
   notes: string;
+  clientName?: string;
+  clientEmail?: string;
+  companyName?: string;
+  city?: string;
+  mobile?: string;
+  enquirePdf?: string;
 }
 
 interface QuotationSheetProps {
@@ -33,19 +39,26 @@ export function QuotationSheet({
     <div
       id={id}
       style={style}
-      className={`w-[794px] h-[1000px] bg-white text-[#0f172a] p-12 shadow-2xl relative border border-slate-200 flex flex-col justify-between select-none transition-transform duration-200 ${
+      className={`w-[794px] h-[1000px] bg-white text-[#0f172a] p-12 shadow-2xl relative border-none flex flex-col justify-between select-none transition-transform duration-200 ${
         className || ""
       }`}
     >
       {/* PDF Header */}
       <div>
         <div className="flex justify-between items-start border-b border-gold pb-6 mb-8">
-          <div>
-            <div className="font-sans font-bold text-2xl tracking-tight text-[#0f172a]">
-              LUMINA / NEXUS
-            </div>
-            <div className="text-[10px] text-slate-500 uppercase tracking-widest mt-1">
-              Luxury Corporate Gifting solutions
+          <div className="flex items-center gap-4">
+            <img
+              src="/logo.png"
+              alt="Nexus Logo"
+              style={{ height: "48px", width: "auto", objectFit: "contain" }}
+            />
+            <div>
+              <div className="font-sans font-bold text-2xl tracking-tight text-[#0f172a]">
+                NEXUS INNOVATIVE
+              </div>
+              <div className="text-[10px] text-slate-500 uppercase tracking-widest mt-1">
+                Corporate Gifting Solutions
+              </div>
             </div>
           </div>
           <div className="text-right">
@@ -67,27 +80,19 @@ export function QuotationSheet({
             <span className="block text-[9px] uppercase font-bold text-slate-400 mb-1">
               Prepared For:
             </span>
-            <strong className="text-sm text-slate-800">Alexander Vance</strong>
+            <strong className="text-sm text-slate-800">{enquiry.clientName || "Client"}</strong>
             <br />
-            VP of Procurement
+            {enquiry.clientEmail || "Email not provided"}
             <br />
-            Vance Corporate Group
-            <br />
-            alexander.vance@vancecorp.com
-            <br />
-            +1 (555) 019-2834
+            {enquiry.mobile || "Mobile not provided"}
           </div>
           <div>
             <span className="block text-[9px] uppercase font-bold text-slate-400 mb-1">
               Company Location:
             </span>
-            <strong className="text-slate-800">Vance Corporate Group HQ</strong>
+            <strong className="text-slate-800">{enquiry.companyName || "Company not specified"}</strong>
             <br />
-            450 Lexington Ave
-            <br />
-            New York, NY 10017
-            <br />
-            United States
+            {enquiry.city || "City not specified"}
           </div>
         </div>
 
@@ -113,7 +118,7 @@ export function QuotationSheet({
                   {enquiry.quantity} units
                 </td>
                 <td className="p-3 text-right text-slate-800">
-                  {enquiry.budget} / unit
+                  {enquiry.budget}
                 </td>
               </tr>
             </tbody>
@@ -139,10 +144,10 @@ export function QuotationSheet({
               Authorized Representative:
             </div>
             <div className="font-sans font-medium text-sm mt-1 border-b border-slate-300 w-48 pb-1 italic text-slate-600">
-              Alexander Vance
+              {enquiry.clientName || "Client Representative"}
             </div>
             <div className="text-[9px] text-slate-400 mt-1">
-              Signature for Vance Corporate Group
+              Signature for {enquiry.companyName || "Corporate Partner"}
             </div>
           </div>
 
@@ -161,7 +166,7 @@ export function QuotationSheet({
 
         <div className="text-[9.5px] text-center text-slate-400 mt-12 border-t border-slate-100 pt-4">
           This is a client-side digital document copy. All information matches verified
-          databases at Lumina Gifting.
+          databases at Nexus Innovative.
         </div>
       </div>
     </div>

@@ -24,11 +24,16 @@ import { PageTransition } from "../components/common/PageTransition";
 import { cn } from "../utils/cn";
 import { QuotationSheet } from "../components/profile/QuotationSheet";
 import type { Enquiry } from "../components/profile/QuotationSheet";
+import { EnquiryModal } from "../components/common/EnquiryModal";
+import { CartEnquiryModal } from "./CartPage";
+import { supabase } from "../supabase";
+import { CustomDropdown } from "../components/common/CustomDropdown";
+import { EnquiryPDFTemplate, type EnquiryPDFData } from "../components/common/EnquiryPDFTemplate";
 
 export function ProfilePage() {
   const navigate = useNavigate();
-  const { items: cartItems, updateQuantity, removeFromCart } = useCart();
-  const [activeTab, setActiveTab] = useState<"overview" | "cart" | "enquiries">("overview");
+  const { items: cartItems, updateQuantity, removeFromCart, clearCart } = useCart();
+  const [activeTab, setActiveTab] = useState<"cart" | "enquiries">("enquiries");
 
   // Read current user session
   const [currentUser, setCurrentUser] = useState(() => {
@@ -40,7 +45,7 @@ export function ProfilePage() {
         return {
           name: metadata.first_name || parsed.email.split("@")[0],
           email: parsed.email,
-          phone: metadata.mobile || "+1 (555) 019-2834",
+          phone: metadata.mobile,
         };
       } catch (e) {
         console.error("Error reading user session from localStorage:", e);
@@ -59,12 +64,6 @@ export function ProfilePage() {
     navigate("/login");
   };
 
-  const [profileData, setProfileData] = useState({
-    gifting_tier: "Corporate Partner",
-    lifetime_spent: 1245000.00,
-    account_manager: "Sarah Jenkins (Corporate Relations)",
-    delivery_address: "450 Lexington Ave, New York, NY 10017",
-  });
 
   // Fetch profile details from backend
   useEffect(() => {
@@ -91,12 +90,6 @@ export function ProfilePage() {
               email: p.email || curr.email,
               phone: p.phone || curr.phone,
             }));
-            setProfileData({
-              gifting_tier: p.gifting_tier || "Corporate Partner",
-              lifetime_spent: p.lifetime_spent !== undefined && p.lifetime_spent !== null ? Number(p.lifetime_spent) : 1245000.00,
-              account_manager: p.account_manager || "Sarah Jenkins (Corporate Relations)",
-              delivery_address: p.delivery_address || "450 Lexington Ave, New York, NY 10017",
-            });
           }
         }
       } catch (err) {
@@ -107,14 +100,36 @@ export function ProfilePage() {
     fetchProfile();
   }, []);
 
-  const [enquiries, setEnquiries] = useState<Enquiry[]>([]);
+  interface ProfileEnquiry extends Enquiry {
+    companyName?: string;
+    city?: string;
+    mobile?: string;
+    dbId?: number;
+    giftingFor?: string;
+  }
+
+  const [enquiries, setEnquiries] = useState<ProfileEnquiry[]>([]);
   const [loadingEnquiries, setLoadingEnquiries] = useState(true);
+  const [enquiryOpen, setEnquiryOpen] = useState(false);
+
+  const handleEnquireClick = () => {
+    setEnquiryOpen(true);
+  };
+
+  // Derive profile summary details from latest enquiry
+  const latestEnquiry = enquiries[0];
+  const profileSummary = {
+    companyName: latestEnquiry?.companyName,
+    budget: latestEnquiry?.budget,
+    city: latestEnquiry?.city,
+    mobile: latestEnquiry?.mobile || currentUser.phone
+  };
 
   // Fetch enquiries from backend
   useEffect(() => {
     const fetchEnquiries = async () => {
-      const baseUrl = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
-      const apiKey = import.meta.env.VITE_CLIENT_API_KEY || "";
+      const baseUrl = import.meta.env.VITE_API_BASE_URL;
+      const apiKey = import.meta.env.VITE_CLIENT_API_KEY;
       const token = localStorage.getItem("nexus_token");
 
       if (!token) {
@@ -131,7 +146,7 @@ export function ProfilePage() {
         });
         if (response.ok) {
           const data = await response.json();
-          const mapped: Enquiry[] = (data.enquiries || []).map((item: any) => {
+          const mapped: ProfileEnquiry[] = (data.enquiries || []).map((item: any) => {
             const dateStr = item.created_at ? new Date(item.created_at).toLocaleString("en-IN", {
               year: "numeric",
               month: "short",
@@ -140,7 +155,7 @@ export function ProfilePage() {
               minute: "2-digit",
               hour12: true
             }) : "";
-            
+
             return {
               id: item.enquiry_id || `ENQ${String(item.id).padStart(5, '0')}`,
               title: item.gifting_for ? `${item.gifting_for} Gifting` : "Corporate Gifting",
@@ -150,10 +165,19 @@ export function ProfilePage() {
               status: "Processing",
               createdDate: dateStr,
               updatedDate: dateStr,
-              notes: [item.message, item.additional_information].filter(Boolean).join("\n")
+              notes: [item.message, item.additional_information].filter(Boolean).join("\n"),
+              companyName: item["Company Name"] || item.company_name || "",
+              city: item.city || "",
+              mobile: item.mobile || "",
+              clientName: item.name || currentUser.name || "Client",
+              clientEmail: item.email || currentUser.email || "Email",
+              enquirePdf: item.enquire_pdf || undefined,
+              dbId: item.id,
+              giftingFor: item.gifting_for || "Others",
             };
           });
           setEnquiries(mapped);
+          localStorage.setItem("nexus_dummy_enquiries", JSON.stringify(mapped));
           if (mapped.length > 0) {
             setSelectedPdfId(mapped[0].id);
           }
@@ -166,11 +190,27 @@ export function ProfilePage() {
     };
 
     fetchEnquiries();
-  }, []);
+  }, [currentUser]);
 
   // Edit Enquiry states
-  const [editingEnquiry, setEditingEnquiry] = useState<Enquiry | null>(null);
-  const [editForm, setEditForm] = useState<Partial<Enquiry>>({});
+  const [editingEnquiry, setEditingEnquiry] = useState<ProfileEnquiry | null>(null);
+  const [editForm, setEditForm] = useState<{
+    companyName: string;
+    city: string;
+    budget: string;
+    giftingFor: string;
+    quantityOption: string;
+    notes: string;
+  }>({
+    companyName: "",
+    city: "",
+    budget: "",
+    giftingFor: "",
+    quantityOption: "",
+    notes: "",
+  });
+
+  const [pdfEnquiryData, setPdfEnquiryData] = useState<EnquiryPDFData | null>(null);
 
   // PDF Preview states
   const [pdfZoom, setPdfZoom] = useState<number>(100);
@@ -213,16 +253,136 @@ export function ProfilePage() {
     };
   }, []);
 
+  // Parse message/notes and quantity range from combined notes
+  const parseNotesAndQuantity = (notesStr: string) => {
+    let notes = "";
+    let qtyOption = "";
+    if (notesStr) {
+      const lines = notesStr.split("\n");
+      const notesLines: string[] = [];
+      for (const line of lines) {
+        if (line.startsWith("Quantity option:")) {
+          qtyOption = line.replace("Quantity option:", "").trim();
+        } else if (line.startsWith("Notes:")) {
+          notesLines.push(line.replace("Notes:", "").trim());
+        } else {
+          notesLines.push(line);
+        }
+      }
+      notes = notesLines.filter(Boolean).join("\n");
+    }
+    return { notes, qtyOption };
+  };
+
   // Handle Editing
-  const openEditModal = (enq: Enquiry) => {
+  const openEditModal = (enq: ProfileEnquiry) => {
     setEditingEnquiry(enq);
+    const parsed = parseNotesAndQuantity(enq.notes);
     setEditForm({
-      title: enq.title,
-      quantity: enq.quantity,
-      budget: enq.budget,
-      notes: enq.notes,
-      status: enq.status,
+      companyName: enq.companyName || "",
+      city: enq.city || "",
+      budget: enq.budget || "",
+      giftingFor: enq.giftingFor || "Others",
+      quantityOption: parsed.qtyOption || "10 to 50",
+      notes: parsed.notes || "",
     });
+  };
+
+  const generateAndUploadPDF = async (pdfData: EnquiryPDFData, enquiryCode: string) => {
+    try {
+      const element = document.getElementById("edit-enquiry-pdf-content");
+      if (!element) {
+        console.error("PDF element not found");
+        return;
+      }
+
+      console.log("Starting PDF generation for edited enquiry:", enquiryCode);
+      const filename = `Enquiry_${enquiryCode}.pdf`;
+
+      const opt = {
+        margin: 0,
+        filename,
+        image: { type: "jpeg", quality: 0.98 },
+        html2canvas: {
+          scale: 2,
+          useCORS: true,
+          onclone: (clonedDoc: Document) => {
+            Array.from(clonedDoc.getElementsByTagName("style")).forEach((el) => {
+              try {
+                let css = el.innerHTML;
+                if (css.includes("oklch")) {
+                  css = css.replace(/oklch\([^)]+\)/g, "#cca028");
+                  el.innerHTML = css;
+                }
+              } catch (e) {
+                console.error("Error cleaning style tag:", e);
+              }
+            });
+          }
+        },
+        jsPDF: {
+          unit: "mm",
+          format: "a4",
+          orientation: "portrait"
+        }
+      };
+
+      const worker = window.html2pdf().set(opt).from(element);
+      const pdf = (await worker.toPdf().get("pdf")) as any;
+      const blob = pdf.output("blob");
+
+      // Upload to Supabase Storage
+      const { error, data: uploadData } = await supabase.storage
+        .from("enquiry-pdfs")
+        .upload(`enquiries/${filename}`, blob, {
+          contentType: "application/pdf",
+          upsert: true
+        });
+
+      if (error) {
+        console.error("Supabase upload error:", error);
+        return;
+      }
+
+      const { data } = supabase.storage
+        .from("enquiry-pdfs")
+        .getPublicUrl(`enquiries/${filename}`);
+
+      const pdfUrl = `${data.publicUrl}?t=${Date.now()}`;
+
+      // Update backend with PDF URL
+      const token = localStorage.getItem("nexus_token");
+      const baseUrl = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
+      if (token) {
+        const updateResponse = await fetch(
+          `${baseUrl}/api/v1/user/enquiries/update-pdf`,
+          {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`
+            },
+            body: JSON.stringify({
+              enquiry_code: enquiryCode,
+              enquire_pdf: pdfUrl
+            })
+          }
+        );
+
+        if (updateResponse.ok) {
+          console.log("Database updated successfully with updated PDF URL and email sent");
+          setEnquiries((prev) =>
+            prev.map((enq) =>
+              enq.id === enquiryCode
+                ? { ...enq, enquirePdf: pdfUrl }
+                : enq
+            )
+          );
+        }
+      }
+    } catch (err) {
+      console.error("PDF regeneration/upload error:", err);
+    }
   };
 
   const handleSaveEdit = async (e: React.FormEvent) => {
@@ -230,24 +390,36 @@ export function ProfilePage() {
     if (!editingEnquiry) return;
 
     const baseUrl = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
-    const apiKey = import.meta.env.VITE_CLIENT_API_KEY || "";
     const token = localStorage.getItem("nexus_token");
 
     if (!token) return;
 
     try {
+      const additionalInfo = [
+        editForm.notes ? `Notes: ${editForm.notes}` : "",
+        `Quantity option: ${editForm.quantityOption}`
+      ].filter(Boolean).join("\n");
+
+      const parseQuantity = (range: string) => {
+        if (range.startsWith("above")) return 500;
+        const parts = range.split(" to ");
+        if (parts.length === 2) return Number(parts[1]);
+        return 1;
+      };
+
       const response = await fetch(`${baseUrl}/api/v1/user/enquiries/update/${editingEnquiry.id}`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
-          "X-API-Key": apiKey,
           "Authorization": `Bearer ${token}`
         },
         body: JSON.stringify({
-          gifting_for: editForm.title || undefined,
-          quantity: editForm.quantity ? Number(editForm.quantity) : undefined,
-          budget: editForm.budget || undefined,
-          message: editForm.notes || undefined
+          company_name: editForm.companyName,
+          city: editForm.city,
+          budget: editForm.budget,
+          gifting_for: editForm.giftingFor,
+          quantity: parseQuantity(editForm.quantityOption),
+          message: additionalInfo
         })
       });
 
@@ -262,22 +434,67 @@ export function ProfilePage() {
           hour12: true
         });
 
-        setEnquiries((prev) =>
-          prev.map((enq) =>
+        // 1. Update UI state first
+        setEnquiries((prev) => {
+          const updated = prev.map((enq) =>
             enq.id === editingEnquiry.id
               ? {
-                  ...enq,
-                  title: editForm.title || enq.title,
-                  quantity: Number(editForm.quantity) || enq.quantity,
-                  budget: editForm.budget || enq.budget,
-                  notes: editForm.notes || enq.notes,
-                  status: editForm.status as any,
-                  updatedDate: dateStr,
-                }
+                ...enq,
+                companyName: editForm.companyName,
+                city: editForm.city,
+                budget: editForm.budget,
+                giftingFor: editForm.giftingFor,
+                title: `${editForm.giftingFor} Gifting`,
+                notes: additionalInfo,
+                quantity: parseQuantity(editForm.quantityOption),
+                updatedDate: dateStr,
+              }
               : enq
-          )
-        );
+          );
+          localStorage.setItem("nexus_dummy_enquiries", JSON.stringify(updated));
+          return updated;
+        });
+
+        // 2. Fetch products to regenerate the A4 enquiry PDF
+        const { data: cartData } = await supabase
+          .from("cart_items")
+          .select("*, products(*)")
+          .eq("enquiry_id", editingEnquiry.dbId);
+
+        const pdfItems = (cartData || []).map((ci: any) => ({
+          product: {
+            id: ci.products?.id,
+            title: ci.products?.name || "Product Item",
+            price: ci.products?.price || 0,
+            image: ci.products?.images?.[0] || "",
+          },
+          quantity: ci.quantity,
+        }));
+
+        const pdfData: EnquiryPDFData = {
+          enquiryId: editingEnquiry.id,
+          name: editingEnquiry.clientName || currentUser.name || "Valued Customer",
+          email: editingEnquiry.clientEmail || currentUser.email || "",
+          company: editForm.companyName,
+          mobile: editingEnquiry.mobile || currentUser.phone || "N/A",
+          city: editForm.city,
+          budget: editForm.budget,
+          giftingFor: editForm.giftingFor,
+          quantity: editForm.quantityOption,
+          notes: editForm.notes,
+          items: pdfItems as any,
+          submittedDate: dateStr,
+        };
+
+        setPdfEnquiryData(pdfData);
+
+        // Close the modal
         setEditingEnquiry(null);
+
+        // 3. Trigger client-side PDF regeneration & upload to Supabase & email notification API
+        setTimeout(() => {
+          generateAndUploadPDF(pdfData, editingEnquiry.id);
+        }, 500);
       } else {
         const data = await response.json().catch(() => null);
         alert(data?.detail || "Failed to update enquiry.");
@@ -288,29 +505,47 @@ export function ProfilePage() {
     }
   };
 
-  // PDF generation & download trigger
-  const handleDownloadPDF = (enquiryId?: string) => {
+  const handleDownloadPDF = async (enquiryId?: string) => {
     const targetId = enquiryId || selectedPdfId;
     const targetEnq = enquiries.find((e) => e.id === targetId) || selectedPdfEnq;
+
+    if (targetEnq && targetEnq.enquirePdf) {
+      window.open(targetEnq.enquirePdf, "_blank");
+      return;
+    }
 
     // Set selection state so the hidden DOM component renders with correct props
     setSelectedPdfId(targetId);
 
-    const runExport = () => {
+    const runExport = async () => {
       const element = document.getElementById("pdf-render-sheet");
       if (!element) return;
 
+      const filename = `Nexus_Quotation_${targetEnq.id}.pdf`;
       const opt = {
-        margin:       0,
-        filename:     `Nexus_Quotation_${targetEnq.id}.pdf`,
-        image:        { type: "jpeg", quality: 0.98 },
-        html2canvas:  { 
-          scale: 2, 
-          useCORS: true, 
+        margin: 0,
+        filename,
+        image: { type: "jpeg", quality: 0.98 },
+        html2canvas: {
+          scale: 2,
+          useCORS: true,
           letterRendering: true,
-          backgroundColor: "#ffffff"
+          backgroundColor: "#ffffff",
+          onclone: (clonedDoc: Document) => {
+            Array.from(clonedDoc.getElementsByTagName("style")).forEach((el) => {
+              try {
+                let css = el.innerHTML;
+                if (css.includes("oklch")) {
+                  css = css.replace(/oklch\([^)]+\)/g, "#cca028");
+                  el.innerHTML = css;
+                }
+              } catch (e) {
+                console.error("Error cleaning style tag:", e);
+              }
+            });
+          }
         },
-        jsPDF:        { unit: "px", format: [794, 1000], orientation: "portrait" }
+        jsPDF: { unit: "px", format: [794, 1000], orientation: "portrait" }
       };
 
       const html2pdf = (window as any).html2pdf;
@@ -319,9 +554,84 @@ export function ProfilePage() {
         return;
       }
 
-      html2pdf().set(opt).from(element).save().catch((err: any) => {
-        console.error("PDF download failed", err);
-      });
+      try {
+        // Generate PDF and get as blob
+        const worker = html2pdf().set(opt).from(element);
+        const pdf = (await worker.toPdf().get("pdf")) as any;
+
+        // Convert PDF to Blob
+        const blob = pdf.output("blob");
+        console.log("PDF generated successfully, size:", blob.size, "bytes");
+
+        // Upload to Supabase Storage
+        console.log("Uploading to Supabase bucket: enquiry-pdfs, path: quotations/" + filename);
+        const { error, data: uploadData } = await supabase.storage
+          .from("enquiry-pdfs")
+          .upload(`quotations/${filename}`, blob, {
+            contentType: "application/pdf",
+            upsert: true
+          });
+
+        if (error) {
+          console.error("Supabase upload error:", error);
+          alert("PDF generated but failed to upload to server. Error: " + error.message);
+          return;
+        }
+
+        console.log("Upload successful:", uploadData);
+
+        // Get Public URL
+        const { data } = supabase.storage
+          .from("enquiry-pdfs")
+          .getPublicUrl(`quotations/${filename}`);
+
+        const pdfUrl = data.publicUrl;
+        console.log("PDF public URL:", pdfUrl);
+
+        // Update backend with PDF URL
+        const baseUrl = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
+        const token = localStorage.getItem("nexus_token");
+
+        if (token && targetEnq.id) {
+          console.log("Updating database for enquiry_code:", targetEnq.id);
+          const apiResponse = await fetch(
+            `${baseUrl}/api/v1/user/enquiries/update-pdf`,
+            {
+              method: "PUT",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`
+              },
+              body: JSON.stringify({
+                enquiry_code: targetEnq.id,
+                enquire_pdf: pdfUrl
+              })
+            }
+          );
+
+          const responseData = await apiResponse.json().catch(() => null);
+          if (apiResponse.ok) {
+            console.log("Database updated successfully with PDF URL");
+            console.log("Enquiry ID:", targetEnq.id, "- PDF URL stored:", pdfUrl);
+            // Update local enquiry state with the new PDF URL
+            setEnquiries((prev) =>
+              prev.map((enq) =>
+                enq.id === targetEnq.id
+                  ? { ...enq, enquirePdf: pdfUrl }
+                  : enq
+              )
+            );
+          } else {
+            console.error("Failed to update database. Response:", responseData);
+          }
+        }
+
+        // Open the PDF in new window
+        window.open(pdfUrl, "_blank");
+      } catch (err) {
+        console.error("PDF download/upload failed:", err);
+        alert("Failed to process PDF. Please try again.");
+      }
     };
 
     // Wait a brief moment for React state update to propagate before capturing
@@ -330,6 +640,13 @@ export function ProfilePage() {
 
   const handleOpenPrintPreview = (enquiryId?: string) => {
     const targetId = enquiryId || selectedPdfId;
+    const targetEnq = enquiries.find((e) => e.id === targetId) || selectedPdfEnq;
+
+    if (targetEnq && targetEnq.enquirePdf) {
+      window.open(targetEnq.enquirePdf, "_blank");
+      return;
+    }
+
     window.open(`/quotation/${targetId}?print=true`, "_blank");
   };
 
@@ -337,7 +654,7 @@ export function ProfilePage() {
     <PageTransition>
       <div className="min-h-screen bg-cloud dark:bg-ink pt-32 pb-24 text-ink dark:text-paper transition-colors duration-300">
         <div className="mx-auto max-w-7xl px-6">
-          
+
           {/* Back button */}
           <Link
             to="/collections"
@@ -356,7 +673,7 @@ export function ProfilePage() {
               <LogOut size={13} />
               Logout
             </button>
-            
+
             <div className="relative">
               <div className="w-24 h-24 rounded-2xl bg-gradient-to-tr from-gold-deep to-gold-light flex items-center justify-center text-ink font-bold text-3xl shadow-lg border border-white/20">
                 {currentUser.name
@@ -375,10 +692,10 @@ export function ProfilePage() {
               <div className="flex flex-col md:flex-row md:items-center gap-3 justify-center md:justify-start">
                 <h1 className="font-display text-3xl font-semibold tracking-tight">{currentUser.name}</h1>
               </div>
-              <p className="text-sm text-ink/50 dark:text-paper/50 mt-1.5 flex items-center gap-1.5 justify-center md:justify-start font-medium">
+              {/* <p className="text-sm text-ink/50 dark:text-paper/50 mt-1.5 flex items-center gap-1.5 justify-center md:justify-start font-medium">
                 <Briefcase size={14} className="text-gold-deep dark:text-gold" />
-                VP of Procurement · Vance Corporate Group
-              </p>
+                <span>{profileSummary.companyName}</span>
+              </p> */}
 
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mt-6 border-t border-ink/5 dark:border-white/5 pt-6 text-xs text-ink/75 dark:text-paper/75">
                 <div className="flex items-center gap-2.5 justify-center md:justify-start">
@@ -390,8 +707,8 @@ export function ProfilePage() {
                   <span>{currentUser.phone}</span>
                 </div>
                 <div className="flex items-center gap-2.5 justify-center md:justify-start">
-                  <MapPin size={15} className="text-gold-deep dark:text-gold" />
-                  <span>{profileData.delivery_address}</span>
+                  <Phone size={15} className="text-gold-deep dark:text-gold" />
+                  <span>Helpline: +91 98840 40777</span>
                 </div>
               </div>
             </div>
@@ -400,8 +717,8 @@ export function ProfilePage() {
           {/* ── DASHBOARD NAVIGATION TABS ── */}
           <div className="flex border-b border-ink/5 dark:border-white/10 mb-8 overflow-x-auto scrollbar-none gap-2">
             {[
-              { id: "overview", label: "Overview", icon: User },
-              { id: "cart", label: `Active Cart (${cartItems.length})`, icon: ShoppingBag },
+              // { id: "overview", label: "Overview", icon: User },
+              // { id: "cart", label: `Active Cart (${cartItems.length})`, icon: ShoppingBag },
               { id: "enquiries", label: `Enquiries (${enquiries.length})`, icon: History },
             ].map((tab) => {
               const Icon = tab.icon;
@@ -427,7 +744,7 @@ export function ProfilePage() {
           {/* ── TAB DETAILS RENDER ── */}
           <div className="min-h-[400px]">
             <AnimatePresence mode="wait">
-              {activeTab === "overview" && (
+              {/* {activeTab === "overview" && (
                 <motion.div
                   key="overview"
                   initial={{ opacity: 0, y: 15 }}
@@ -440,25 +757,20 @@ export function ProfilePage() {
                     <h3 className="font-display text-xl font-semibold mb-4 border-b border-ink/5 dark:border-white/5 pb-2">Account Summary</h3>
                     <div className="grid sm:grid-cols-2 gap-6 text-sm">
                       <div>
-                        <span className="block text-xs uppercase tracking-wider text-ink/40 dark:text-paper/40 mb-1">Company Gifting Tier</span>
-                        <strong className="text-gold-deep dark:text-gold font-bold">{profileData.gifting_tier}</strong>
+                        <span className="block text-xs uppercase tracking-wider text-ink/40 dark:text-paper/40 mb-1">Company Name</span>
+                        <strong className="text-gold-deep dark:text-gold font-bold">{profileSummary.companyName}</strong>
                       </div>
                       <div>
-                        <span className="block text-xs uppercase tracking-wider text-ink/40 dark:text-paper/40 mb-1">Account Manager</span>
-                        <strong className="font-semibold">{profileData.account_manager}</strong>
+                        <span className="block text-xs uppercase tracking-wider text-ink/40 dark:text-paper/40 mb-1">Budget</span>
+                        <strong className="font-semibold">{profileSummary.budget}</strong>
                       </div>
                       <div>
-                        <span className="block text-xs uppercase tracking-wider text-ink/40 dark:text-paper/40 mb-1">Lifetime Spent</span>
-                        <strong className="font-semibold">
-                          ₹{profileData.lifetime_spent.toLocaleString("en-IN", {
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: 2
-                          })}
-                        </strong>
+                        <span className="block text-xs uppercase tracking-wider text-ink/40 dark:text-paper/40 mb-1">City</span>
+                        <strong className="font-semibold">{profileSummary.city}</strong>
                       </div>
                       <div>
-                        <span className="block text-xs uppercase tracking-wider text-ink/40 dark:text-paper/40 mb-1">Verified Delivery Address</span>
-                        <strong className="font-semibold">{profileData.delivery_address}</strong>
+                        <span className="block text-xs uppercase tracking-wider text-ink/40 dark:text-paper/40 mb-1">Mobile Number</span>
+                        <strong className="font-semibold">{profileSummary.mobile}</strong>
                       </div>
                     </div>
                   </div>
@@ -476,9 +788,9 @@ export function ProfilePage() {
                     </div>
                   </div>
                 </motion.div>
-              )}
+              )} */}
 
-              {activeTab === "cart" && (
+              {/* {activeTab === "cart" && (
                 <motion.div
                   key="cart"
                   initial={{ opacity: 0, y: 15 }}
@@ -488,7 +800,7 @@ export function ProfilePage() {
                   className="bg-white/60 dark:bg-ink-soft/40 backdrop-blur-md rounded-3xl p-6 border border-ink/5 dark:border-white/5 shadow-sm"
                 >
                   <h3 className="font-display text-xl font-semibold mb-6 border-b border-ink/5 dark:border-white/5 pb-2">Active Quotation Cart</h3>
-                  
+
                   {cartItems.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-16 text-center">
                       <ShoppingBag size={48} className="text-ink/20 dark:text-paper/20 mb-4 animate-bounce" />
@@ -534,7 +846,7 @@ export function ProfilePage() {
                           Configure your quantities above. These items represent your custom corporate enquiry bundle.
                         </div>
                         <button
-                          onClick={() => navigate("/contact")}
+                          onClick={handleEnquireClick}
                           className="inline-flex items-center gap-2 rounded-xl bg-gold text-ink font-semibold px-6 py-3.5 text-xs hover:bg-gold-deep hover:shadow-gold-glow transition-all"
                         >
                           Submit Enquiry Bundle
@@ -543,7 +855,7 @@ export function ProfilePage() {
                     </div>
                   )}
                 </motion.div>
-              )}
+              )} */}
 
               {activeTab === "enquiries" && (
                 <motion.div
@@ -663,133 +975,148 @@ export function ProfilePage() {
           </div>
         </div>
 
-        {/* ── EDIT ENQUIRY MODAL (ONLY FRONTEND DUMMY LOGIC) ── */}
+        {/* ── EDIT ENQUIRY MODAL (WITH PDF REGENERATION & NOTIFICATION TRIGGER) ── */}
         <AnimatePresence>
           {editingEnquiry && (
-            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-              {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[100] flex items-center justify-center bg-[#0f172a]/55 p-4 backdrop-blur-md"
+              onClick={() => setEditingEnquiry(null)}
+            >
               <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                onClick={() => setEditingEnquiry(null)}
-                className="absolute inset-0 bg-ink/65 backdrop-blur-sm"
-              />
-
-              {/* Form Container */}
-              <motion.div
-                initial={{ scale: 0.95, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 0.95, opacity: 0 }}
-                className="relative w-full max-w-[500px] rounded-3xl bg-white dark:bg-ink-soft border border-ink/10 dark:border-white/10 p-6 shadow-2xl z-10 text-ink dark:text-paper"
+                initial={{ opacity: 0, y: 24, scale: 0.97 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 16, scale: 0.97 }}
+                transition={{ duration: 0.3, ease: "easeOut" }}
+                onClick={(e) => e.stopPropagation()}
+                className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-[32px] p-10 bg-[#d1d2d6] border border-white/20 shadow-2xl relative text-[#0f172a]"
               >
-                <div className="flex items-center justify-between border-b border-ink/5 dark:border-white/10 pb-3 mb-4">
-                  <h3 className="font-display text-lg font-semibold flex items-center gap-2">
-                    <Edit3 size={18} className="text-gold" />
-                    Edit Gifting Enquiry ({editingEnquiry.id})
-                  </h3>
+                <div className="mb-6 flex items-start justify-between">
+                  <div>
+                    <p className="eyebrow mb-2 text-[#cca028]">Enquiry Edit</p>
+                    <h3 className="font-display text-3xl font-semibold text-[#0f172a] tracking-tight">
+                      Edit Details ({editingEnquiry.id})
+                    </h3>
+                  </div>
                   <button
                     onClick={() => setEditingEnquiry(null)}
-                    className="p-1 rounded-full hover:bg-ink/5 dark:hover:bg-paper/5 transition-colors cursor-pointer"
+                    aria-label="Close"
+                    className="text-[#0f172a] hover:opacity-70 transition-opacity cursor-pointer"
                   >
-                    <X size={18} />
+                    <X size={20} />
                   </button>
                 </div>
 
-                <form onSubmit={handleSaveEdit} className="space-y-4">
-                  <div>
-                    <label className="block text-xs uppercase tracking-wider text-ink/40 dark:text-paper/40 mb-1.5 font-bold">
-                      Enquiry Title
-                    </label>
+                <form onSubmit={handleSaveEdit} className="grid grid-cols-2 gap-4">
+                  <div className="col-span-2 sm:col-span-1">
+                    <label className="block text-[10px] uppercase font-bold text-[#cca028] mb-1.5">Company name</label>
                     <input
                       type="text"
+                      className="w-full rounded-xl border border-black/15 bg-[#c2c3c8] px-4 py-2.5 text-sm text-[#0f172a] outline-none transition-colors focus:border-[#cca028] placeholder:text-[#5f6368]"
+                      placeholder="Company name"
+                      value={editForm.companyName}
+                      onChange={(e) => setEditForm((prev) => ({ ...prev, companyName: e.target.value.replace(/[^A-Za-z0-9\s]/g, "") }))}
                       required
-                      value={editForm.title || ""}
-                      onChange={(e) => setEditForm((prev) => ({ ...prev, title: e.target.value }))}
-                      className="w-full rounded-xl bg-cloud dark:bg-ink border border-ink/10 dark:border-white/15 py-3 px-4 text-sm outline-none focus:border-gold transition-colors text-ink dark:text-paper"
                     />
                   </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs uppercase tracking-wider text-ink/40 dark:text-paper/40 mb-1.5 font-bold">
-                        Quantity Units
-                      </label>
-                      <input
-                        type="number"
-                        min="1"
-                        required
-                        value={editForm.quantity || 0}
-                        onChange={(e) => setEditForm((prev) => ({ ...prev, quantity: Number(e.target.value) }))}
-                        className="w-full rounded-xl bg-cloud dark:bg-ink border border-ink/10 dark:border-white/15 py-3 px-4 text-sm outline-none focus:border-gold transition-colors text-ink dark:text-paper"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs uppercase tracking-wider text-ink/40 dark:text-paper/40 mb-1.5 font-bold">
-                        Budget Tier (per unit)
-                      </label>
-                      <select
-                        value={editForm.budget || ""}
-                        onChange={(e) => setEditForm((prev) => ({ ...prev, budget: e.target.value }))}
-                        className="w-full rounded-xl bg-cloud dark:bg-ink border border-ink/10 dark:border-white/15 py-3 px-4 text-sm outline-none focus:border-gold transition-colors text-ink dark:text-paper cursor-pointer"
-                      >
-                        <option value="₹10 - ₹25">₹10 - ₹25</option>
-                        <option value="₹25 - ₹50">₹25 - ₹50</option>
-                        <option value="₹50 - ₹100">₹50 - ₹100</option>
-                        <option value="₹100 - ₹150">₹100 - ₹150</option>
-                        <option value="₹150+">₹150+</option>
-                      </select>
-                    </div>
+                  <div className="col-span-2 sm:col-span-1">
+                    <label className="block text-[10px] uppercase font-bold text-[#cca028] mb-1.5">City</label>
+                    <input
+                      type="text"
+                      className="w-full rounded-xl border border-black/15 bg-[#c2c3c8] px-4 py-2.5 text-sm text-[#0f172a] outline-none transition-colors focus:border-[#cca028] placeholder:text-[#5f6368]"
+                      placeholder="City"
+                      value={editForm.city}
+                      onChange={(e) => setEditForm((prev) => ({ ...prev, city: e.target.value.replace(/[^A-Za-z\s]/g, "") }))}
+                      required
+                    />
                   </div>
-
-                  {/* <div>
-                    <label className="block text-xs uppercase tracking-wider text-ink/40 dark:text-paper/40 mb-1.5 font-bold">
-                      Enquiry Status
-                    </label>
-                    <select
-                      value={editForm.status || ""}
-                      onChange={(e) => setEditForm((prev) => ({ ...prev, status: e.target.value as any }))}
-                      className="w-full rounded-xl bg-cloud dark:bg-ink border border-ink/10 dark:border-white/15 py-3 px-4 text-sm outline-none focus:border-gold transition-colors text-ink dark:text-paper cursor-pointer"
-                    >
-                      <option value="Approved">Approved</option>
-                      <option value="Processing">Processing</option>
-                      <option value="Draft">Draft</option>
-                    </select>
-                  </div> */}
-
-                  <div>
-                    <label className="block text-xs uppercase tracking-wider text-ink/40 dark:text-paper/40 mb-1.5 font-bold">
-                      Special Requirements / Notes
-                    </label>
+                  <div className="col-span-2 sm:col-span-1">
+                    <label className="block text-[10px] uppercase font-bold text-[#cca028] mb-1.5">Budget</label>
+                    <input
+                      type="text"
+                      className="w-full rounded-xl border border-black/15 bg-[#c2c3c8] px-4 py-2.5 text-sm text-[#0f172a] outline-none transition-colors focus:border-[#cca028] placeholder:text-[#5f6368]"
+                      placeholder="Budget (e.g. 2000/unit)"
+                      value={editForm.budget}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        const digits = val.replace(/[^0-9]/g, "");
+                        setEditForm((prev) => ({ ...prev, budget: digits ? `₹ ${digits}` : "" }));
+                      }}
+                      required
+                    />
+                  </div>
+                  <div className="col-span-2 sm:col-span-1">
+                    <label className="block text-[10px] uppercase font-bold text-[#cca028] mb-1.5">Gifting for</label>
+                    <CustomDropdown
+                      placeholder="Select Gifting For"
+                      value={editForm.giftingFor}
+                      options={[
+                        { label: "Internal Employee", value: "Internal Clients" },
+                        { label: "Clients / Customers", value: "External" },
+                        { label: "VIP / CEO", value: "Vip" },
+                        { label: "Others", value: "Others" },
+                      ]}
+                      onChange={(val) => setEditForm((prev) => ({ ...prev, giftingFor: val }))}
+                    />
+                  </div>
+                  <div className="col-span-2">
+                    <label className="block text-[10px] uppercase font-bold text-[#cca028] mb-1.5">Quantity options</label>
+                    <CustomDropdown
+                      placeholder="Select Quantity Option"
+                      value={editForm.quantityOption}
+                      options={[
+                        { label: "0 to 5 pcs", value: "0 to 5" },
+                        { label: "5 to 10 pcs", value: "5 to 10" },
+                        { label: "10 to 50 pcs", value: "10 to 50" },
+                        { label: "50 to 100 pcs", value: "50 to 100" },
+                        { label: "100 to 200 pcs", value: "100 to 200" },
+                        { label: "200 to 500 pcs", value: "200 to 500" },
+                        { label: "Above 500 pcs", value: "above 500" },
+                      ]}
+                      onChange={(val) => setEditForm((prev) => ({ ...prev, quantityOption: val }))}
+                    />
+                  </div>
+                  <div className="col-span-2">
+                    <label className="block text-[10px] uppercase font-bold text-[#cca028] mb-1.5">Additional notes</label>
                     <textarea
+                      className="w-full rounded-xl border border-black/15 bg-[#c2c3c8] px-4 py-2.5 text-sm text-[#0f172a] outline-none transition-colors focus:border-[#cca028] placeholder:text-[#5f6368]"
                       rows={3}
-                      value={editForm.notes || ""}
+                      placeholder="Additional information"
+                      value={editForm.notes}
                       onChange={(e) => setEditForm((prev) => ({ ...prev, notes: e.target.value }))}
-                      className="w-full rounded-xl bg-cloud dark:bg-ink border border-ink/10 dark:border-white/15 py-3 px-4 text-sm outline-none focus:border-gold transition-colors text-ink dark:text-paper resize-none"
                     />
                   </div>
-
-                  <div className="flex gap-3 justify-end pt-4">
-                    <button
-                      type="button"
-                      onClick={() => setEditingEnquiry(null)}
-                      className="rounded-xl border border-ink/10 dark:border-white/15 px-5 py-3 text-xs font-semibold hover:bg-ink/5 dark:hover:bg-paper/5 transition-colors cursor-pointer"
-                    >
-                      Cancel
-                    </button>
+                  <div className="col-span-2 mt-2">
                     <button
                       type="submit"
-                      className="inline-flex items-center gap-1.5 rounded-xl bg-gold text-ink font-semibold px-6 py-3 text-xs hover:bg-gold-deep hover:shadow-gold-glow transition-all cursor-pointer"
+                      className="w-full justify-center py-4 bg-[#cca028] text-[#0f172a] font-medium rounded-xl shadow-md hover:bg-[#d5a82c] transition-all hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-2 cursor-pointer"
                     >
-                      <Check size={14} /> Save Changes
+                      Save Changes
                     </button>
                   </div>
                 </form>
               </motion.div>
-            </div>
+            </motion.div>
           )}
         </AnimatePresence>
+
+        {/* Hidden PDF Template for editing */}
+        {pdfEnquiryData && (
+          <div style={{
+            position: "fixed",
+            top: "-9999px",
+            left: "-9999px",
+            width: "210mm",
+            height: "297mm",
+            zIndex: "-1"
+          }}>
+            <EnquiryPDFTemplate data={pdfEnquiryData} id="edit-enquiry-pdf-content" />
+          </div>
+        )}
       </div>
+      {enquiryOpen && <CartEnquiryModal onClose={() => setEnquiryOpen(false)} cartItems={cartItems} clearCart={clearCart} />}
     </PageTransition>
   );
 }

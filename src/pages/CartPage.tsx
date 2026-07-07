@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { ArrowLeft, Minus, Plus, Trash2, ShoppingBag, Send, X, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, Minus, Plus, Trash2, ShoppingBag, Send, X, CheckCircle2, Download } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useCart } from "../context/CartContext";
 import type { CartItem } from "../context/CartContext";
@@ -9,12 +9,11 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { CustomDropdown } from "../components/common/CustomDropdown";
+import { EnquiryPDFTemplate, type EnquiryPDFData } from "../components/common/EnquiryPDFTemplate";
+import { supabase } from "../supabase";
 
 const enquirySchema = z.object({
-  name: z.string().min(2, "Enter your full name").regex(/^[A-Za-z\s]+$/, "Name must contain only alphabetic characters"),
-  mobile: z.string().regex(/^\d{10}$/, "Mobile number must be exactly 10 digits"),
   company: z.string().min(2, "Enter your company name"),
-  email: z.string().email("Enter a valid email"),
   city: z.string().min(2, "Enter your city").regex(/^[A-Za-z\s]+$/, "City name must contain only alphabetic characters"),
   budget: z.string().min(1, "Enter a budget amount").regex(/^₹\s\d+$/, "Enter a valid budget amount"),
   giftingFor: z.string().min(1, "Tell us who this is for"),
@@ -201,7 +200,7 @@ export function CartPage() {
   );
 }
 
-function CartEnquiryModal({
+export function CartEnquiryModal({
   onClose,
   cartItems,
   clearCart,
@@ -211,8 +210,56 @@ function CartEnquiryModal({
   clearCart: () => void;
 }) {
   const [submitted, setSubmitted] = useState(false);
+  const [isLibraryLoaded, setIsLibraryLoaded] = useState(false);
+  const [enquiryData, setEnquiryData] = useState<EnquiryPDFData | null>(null);
+  const [profile, setProfile] = useState<{ name: string; email: string; phone: string } | null>(null);
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
-  const API_KEY = import.meta.env.VITE_CLIENT_API_KEY;
+
+  // Fetch user profile on mount
+  useEffect(() => {
+    const fetchProfile = async () => {
+      const token = localStorage.getItem("nexus_token");
+      if (!token) return;
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/v1/user/auth/profile`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        if (response.ok) {
+          const data = await response.json();
+          if (data.profile) {
+            setProfile({
+              name: data.profile.name || "",
+              email: data.profile.email || "",
+              phone: data.profile.phone || "",
+            });
+          }
+        }
+      } catch (err) {
+        console.error("Failed to fetch profile in CartEnquiryModal:", err);
+      }
+    };
+
+    fetchProfile();
+  }, [API_BASE_URL]);
+
+  // Load html2pdf from CDN
+  useEffect(() => {
+    const script = document.createElement("script");
+    script.src = "https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js";
+    script.async = true;
+    script.onload = () => setIsLibraryLoaded(true);
+    script.onerror = () => console.error("Failed to load html2pdf library");
+    document.body.appendChild(script);
+    return () => {
+      try {
+        document.body.removeChild(script);
+      } catch (e) {
+        console.error("Error removing script:", e);
+      }
+    };
+  }, []);
 
   const {
     register,
@@ -224,8 +271,33 @@ function CartEnquiryModal({
 
   const giftingForValue = watch("giftingFor") || "";
   const quantityValue = watch("quantity") || "";
+
+  const downloadPDF = async () => {
+    try {
+      const filename = enquiryData?.enquiryId
+        ? `Enquiry_${enquiryData.enquiryId}.pdf`
+        : `Enquiry_${Date.now()}.pdf`;
+
+      // Get the public URL from Supabase
+      const { data } = supabase.storage
+        .from("enquiry-pdfs")
+        .getPublicUrl(`enquiries/${filename}`);
+
+      if (data?.publicUrl) {
+        // Open or download the PDF
+        window.open(data.publicUrl, "_blank");
+      } else {
+        alert("PDF not found. Please try again.");
+      }
+    } catch (err) {
+      console.error("Error downloading PDF:", err);
+      alert("Failed to download PDF. Please try again.");
+    }
+  };
+
   const onSubmit = async (data: EnquiryForm) => {
     try {
+      const token = localStorage.getItem("nexus_token");
       const itemsPayload = cartItems.map((item) => ({
         product_id: Number(item.product.id),
         quantity: Number(item.quantity),
@@ -233,10 +305,7 @@ function CartEnquiryModal({
 
       const payload = {
         items: itemsPayload,
-        name: data.name,
-        email: data.email,
         company_name: data.company,
-        mobile: data.mobile,
         city: data.city,
         budget: data.budget,
         gifting_for: data.giftingFor,
@@ -252,8 +321,7 @@ function CartEnquiryModal({
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "X-API-Key": API_KEY || "",
-            "Authorization": `Bearer ${localStorage.getItem("nexus_token") || ""}`,
+            "Authorization": `Bearer ${token || ""}`,
           },
           body: JSON.stringify(payload),
         }
@@ -266,8 +334,39 @@ function CartEnquiryModal({
         );
       }
 
+      const resData = await response.json().catch(() => null);
+      const enquiryCode = resData?.enquiry_code || "";
+
+      // Set enquiry data for PDF
+      const pdfData: EnquiryPDFData = {
+        enquiryId: enquiryCode,
+        name: profile?.name || "Valued Customer",
+        email: profile?.email || "",
+        company: data.company,
+        mobile: profile?.phone || "N/A",
+        city: data.city,
+        budget: data.budget,
+        giftingFor: data.giftingFor,
+        quantity: data.quantity,
+        notes: data.notes,
+        items: cartItems,
+        submittedDate: new Date().toLocaleDateString("en-IN", {
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
+      };
+
+      setEnquiryData(pdfData);
       setSubmitted(true);
       clearCart();
+
+      // Automatically generate and upload PDF after enquiry submission
+      setTimeout(() => {
+        generateAndUploadPDF(pdfData, enquiryCode);
+      }, 500);
     } catch (error) {
       console.error(error);
       alert(
@@ -275,6 +374,112 @@ function CartEnquiryModal({
           ? error.message
           : "Something went wrong. Please try again."
       );
+    }
+  };
+
+  const generateAndUploadPDF = async (pdfData: EnquiryPDFData, enquiryCode: string) => {
+    try {
+      const element = document.getElementById("enquiry-pdf-content");
+      if (!element) {
+        console.error("PDF element not found");
+        return;
+      }
+
+      console.log("Starting PDF generation for enquiry:", enquiryCode);
+
+      const filename = `Enquiry_${enquiryCode}.pdf`;
+
+      const opt = {
+        margin: 0,
+        filename,
+        image: { type: "jpeg", quality: 0.98 },
+        html2canvas: {
+          scale: 2,
+          useCORS: true,
+          onclone: (clonedDoc: Document) => {
+            Array.from(clonedDoc.getElementsByTagName("style")).forEach((el) => {
+              try {
+                let css = el.innerHTML;
+                if (css.includes("oklch")) {
+                  css = css.replace(/oklch\([^)]+\)/g, "#cca028");
+                  el.innerHTML = css;
+                }
+              } catch (e) {
+                console.error("Error cleaning style tag:", e);
+              }
+            });
+          }
+        },
+        jsPDF: {
+          unit: "mm",
+          format: "a4",
+          orientation: "portrait"
+        }
+      };
+
+      // Generate PDF
+      const worker = window.html2pdf().set(opt).from(element);
+      const pdf = (await worker.toPdf().get("pdf")) as any;
+
+      // Convert PDF to Blob
+      const blob = pdf.output("blob");
+      console.log("PDF generated successfully, size:", blob.size, "bytes");
+
+      // Upload to Supabase Storage
+      console.log("Uploading to Supabase bucket: enquiry-pdfs, path: enquiries/" + filename);
+      const { error, data: uploadData } = await supabase.storage
+        .from("enquiry-pdfs")
+        .upload(`enquiries/${filename}`, blob, {
+          contentType: "application/pdf",
+          upsert: true
+        });
+
+      if (error) {
+        console.error("Supabase upload error:", error);
+        return;
+      }
+
+      console.log("Upload successful:", uploadData);
+
+      // Get Public URL
+      const { data } = supabase.storage
+        .from("enquiry-pdfs")
+        .getPublicUrl(`enquiries/${filename}`);
+
+      const pdfUrl = data.publicUrl;
+      console.log("PDF public URL:", pdfUrl);
+
+      // Update backend with PDF URL
+      const token = localStorage.getItem("nexus_token");
+      if (token) {
+        console.log("Updating database for enquiry_code:", enquiryCode);
+        const updateResponse = await fetch(
+          `${API_BASE_URL}/api/v1/user/enquiries/update-pdf`,
+          {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`
+            },
+            body: JSON.stringify({
+              enquiry_code: enquiryCode,
+              enquire_pdf: pdfUrl
+            })
+          }
+        );
+
+        const responseData = await updateResponse.json().catch(() => null);
+        if (updateResponse.ok) {
+          console.log("Database updated successfully with PDF URL");
+          console.log("Enquiry ID:", enquiryCode, "- PDF URL stored:", pdfUrl);
+        } else {
+          console.error("Failed to update database. Response:", responseData);
+        }
+      } else {
+        console.error("No authentication token found");
+      }
+    } catch (err) {
+      console.error("PDF generation/upload error:", err);
     }
   };
 
@@ -343,6 +548,14 @@ function CartEnquiryModal({
             <p className="max-w-xs text-sm text-[#0f172a]/70 dark:text-[#0f172a]/70">
               Our gifting consultants will reach out shortly.
             </p>
+            {isLibraryLoaded && enquiryData && (
+              <button
+                onClick={downloadPDF}
+                className="mt-6 inline-flex items-center gap-2 rounded-xl bg-[#cca028] text-[#0f172a] px-6 py-3 text-sm font-medium transition-all hover:bg-[#d5a82c] shadow-md"
+              >
+                <Download size={16} /> Download Enquiry PDF
+              </button>
+            )}
           </motion.div>
         ) : (
           <form
@@ -350,38 +563,6 @@ function CartEnquiryModal({
             noValidate
             className="grid grid-cols-2 gap-4"
           >
-            <div className="col-span-2 sm:col-span-1">
-              <input
-                type="text"
-                className={modalInputClass}
-                placeholder="Full name"
-                {...register("name")}
-                onInput={(e) => {
-                  e.currentTarget.value = e.currentTarget.value.replace(
-                    /[^A-Za-z\s]/g,
-                    ""
-                  );
-                }}
-              />
-              {errors.name && (
-                <p className={errorClass}>{errors.name.message}</p>
-              )}
-            </div>
-            <div className="col-span-2 sm:col-span-1">
-              <input
-                type="tel"
-                maxLength={10}
-                className={modalInputClass}
-                placeholder="Mobile number"
-                {...register("mobile")}
-                onInput={(e) => {
-                  e.currentTarget.value = e.currentTarget.value.replace(/\D/g, "");
-                }}
-              />
-              {errors.mobile && (
-                <p className={errorClass}>{errors.mobile.message}</p>
-              )}
-            </div>
             <div className="col-span-2 sm:col-span-1">
               <input
                 type="text"
@@ -397,17 +578,6 @@ function CartEnquiryModal({
               />
               {errors.company && (
                 <p className={errorClass}>{errors.company.message}</p>
-              )}
-            </div>
-            <div className="col-span-2 sm:col-span-1">
-              <input
-                type="email"
-                className={modalInputClass}
-                placeholder="Email ID"
-                {...register("email")}
-              />
-              {errors.email && (
-                <p className={errorClass}>{errors.email.message}</p>
               )}
             </div>
             <div className="col-span-2 sm:col-span-1">
@@ -499,6 +669,20 @@ function CartEnquiryModal({
               </button>
             </div>
           </form>
+        )}
+
+        {/* Hidden PDF Template */}
+        {enquiryData && (
+          <div style={{
+            position: "fixed",
+            top: "-9999px",
+            left: "-9999px",
+            width: "210mm",
+            height: "297mm",
+            zIndex: "-1"
+          }}>
+            <EnquiryPDFTemplate data={enquiryData} id="enquiry-pdf-content" />
+          </div>
         )}
       </motion.div>
     </motion.div>
