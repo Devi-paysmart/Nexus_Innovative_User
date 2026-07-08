@@ -4,6 +4,7 @@ export interface Product {
   description: string;
   image: string;
   images?: string[];
+  custom_prod_id?: string;
 }
 
 export interface Category {

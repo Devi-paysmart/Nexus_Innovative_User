@@ -25,6 +25,7 @@ import { ProfilePage } from "./pages/ProfilePage";
 import { QuotationPDFPage } from "./pages/QuotationPDFPage";
 import AuthPage from "./pages/AuthPage";
 import RegisterPage from "./pages/RegisterPage";
+import { ProductDetailsPage } from "./pages/ProductDetailsPage";
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -69,6 +70,7 @@ function AnimatedRoutes() {
         <Route path="/cart" element={<CartPage />} />
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/register" element={<RegisterPage />} />
+        <Route path="/product/:id" element={<ProductDetailsPage />} />
       </Routes>
     </AnimatePresence>
   );

@@ -89,7 +89,9 @@ export function QuotationPDFPage() {
         scale: 2, 
         useCORS: true, 
         letterRendering: true,
-        backgroundColor: "#ffffff"
+        backgroundColor: "#ffffff",
+        scrollY: 0,
+        scrollX: 0
       },
       jsPDF:        { unit: "px", format: [794, 1000], orientation: "portrait" }
     };

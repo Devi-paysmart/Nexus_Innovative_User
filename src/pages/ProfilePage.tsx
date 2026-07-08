@@ -19,7 +19,6 @@ import { cn } from "../utils/cn";
 import { QuotationSheet } from "../components/profile/QuotationSheet";
 import type { Enquiry } from "../components/profile/QuotationSheet";
 import { CartEnquiryModal } from "./CartPage";
-import { supabase } from "../supabase";
 import { CustomDropdown } from "../components/common/CustomDropdown";
 import { EnquiryPDFTemplate, type EnquiryPDFData } from "../components/common/EnquiryPDFTemplate";
 
@@ -144,7 +143,7 @@ export function ProfilePage() {
               category: item.enquiry_type ? (item.enquiry_type.charAt(0).toUpperCase() + item.enquiry_type.slice(1) + " Gifting") : "General Gifting",
               quantity: item.quantity || 1,
               budget: item.budget || "Custom",
-              status: "Processing",
+              // status: "Processing",
               createdDate: dateStr,
               updatedDate: dateStr,
               notes: [item.message, item.additional_information].filter(Boolean).join("\n"),
@@ -272,6 +271,8 @@ export function ProfilePage() {
 
   const generateAndUploadPDF = async (_pdfData: EnquiryPDFData, enquiryCode: string) => {
     try {
+      const token = localStorage.getItem("nexus_token");
+      const baseUrl = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
       const element = document.getElementById("edit-enquiry-pdf-content");
       if (!element) {
         console.error("PDF element not found");
@@ -288,6 +289,8 @@ export function ProfilePage() {
         html2canvas: {
           scale: 2,
           useCORS: true,
+          scrollY: 0,
+          scrollX: 0,
           onclone: (clonedDoc: Document) => {
             Array.from(clonedDoc.getElementsByTagName("style")).forEach((el) => {
               try {
@@ -313,28 +316,33 @@ export function ProfilePage() {
       const pdf = (await worker.toPdf().get("pdf")) as any;
       const blob = pdf.output("blob");
 
-      // Upload to Supabase Storage
-      const { error } = await supabase.storage
-        .from("enquiry-pdfs")
-        .upload(`enquiries/${filename}`, blob, {
-          contentType: "application/pdf",
-          upsert: true
-        });
+      // Upload to Backend (which uploads to Supabase Storage)
+      const formData = new FormData();
+      formData.append("file", blob, filename);
+      formData.append("path", `enquiries/${filename}`);
 
-      if (error) {
-        console.error("Supabase upload error:", error);
-        return;
+      const apiKey = import.meta.env.VITE_CLIENT_API_KEY;
+      const uploadResponse = await fetch(
+        `${baseUrl}/api/v1/user/enquiries/upload-pdf`,
+        {
+          method: "POST",
+          headers: {
+            "X-API-Key": apiKey,
+            "Authorization": `Bearer ${token}`
+          },
+          body: formData
+        }
+      );
+
+      if (!uploadResponse.ok) {
+        const errorData = await uploadResponse.json().catch(() => null);
+        throw new Error(errorData?.detail || `Failed to upload PDF (${uploadResponse.status})`);
       }
 
-      const { data } = supabase.storage
-        .from("enquiry-pdfs")
-        .getPublicUrl(`enquiries/${filename}`);
-
-      const pdfUrl = `${data.publicUrl}?t=${Date.now()}`;
+      const uploadResult = await uploadResponse.json();
+      const pdfUrl = `${uploadResult.pdf_url}?t=${Date.now()}`;
 
       // Update backend with PDF URL
-      const token = localStorage.getItem("nexus_token");
-      const baseUrl = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
       if (token) {
         const updateResponse = await fetch(
           `${baseUrl}/api/v1/user/enquiries/update-pdf`,
@@ -438,10 +446,21 @@ export function ProfilePage() {
         });
 
         // 2. Fetch products to regenerate the A4 enquiry PDF
-        const { data: cartData } = await supabase
-          .from("cart_items")
-          .select("*, products(*)")
-          .eq("enquiry_id", editingEnquiry.dbId);
+        const apiKey = import.meta.env.VITE_CLIENT_API_KEY;
+        const cartResponse = await fetch(
+          `${baseUrl}/api/v1/user/enquiries/${editingEnquiry.dbId}/cart_items`,
+          {
+            headers: {
+              "X-API-Key": apiKey,
+              "Authorization": `Bearer ${token}`
+            }
+          }
+        );
+        if (!cartResponse.ok) {
+          throw new Error("Failed to fetch cart items from backend");
+        }
+        const cartDataJson = await cartResponse.json();
+        const cartData = cartDataJson.cart_items;
 
         const pdfItems = (cartData || []).map((ci: any) => ({
           product: {
@@ -513,6 +532,8 @@ export function ProfilePage() {
           useCORS: true,
           letterRendering: true,
           backgroundColor: "#ffffff",
+          scrollY: 0,
+          scrollX: 0,
           onclone: (clonedDoc: Document) => {
             Array.from(clonedDoc.getElementsByTagName("style")).forEach((el) => {
               try {
@@ -545,34 +566,36 @@ export function ProfilePage() {
         const blob = pdf.output("blob");
         console.log("PDF generated successfully, size:", blob.size, "bytes");
 
-        // Upload to Supabase Storage
-        console.log("Uploading to Supabase bucket: enquiry-pdfs, path: quotations/" + filename);
-        const { error, data: uploadData } = await supabase.storage
-          .from("enquiry-pdfs")
-          .upload(`quotations/${filename}`, blob, {
-            contentType: "application/pdf",
-            upsert: true
-          });
-
-        if (error) {
-          console.error("Supabase upload error:", error);
-          alert("PDF generated but failed to upload to server. Error: " + error.message);
-          return;
-        }
-
-        console.log("Upload successful:", uploadData);
-
-        // Get Public URL
-        const { data } = supabase.storage
-          .from("enquiry-pdfs")
-          .getPublicUrl(`quotations/${filename}`);
-
-        const pdfUrl = data.publicUrl;
-        console.log("PDF public URL:", pdfUrl);
-
-        // Update backend with PDF URL
         const baseUrl = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
         const token = localStorage.getItem("nexus_token");
+
+        // Upload to Backend (which uploads to Supabase Storage)
+        console.log("Uploading PDF through backend: quotations/" + filename);
+        const formData = new FormData();
+        formData.append("file", blob, filename);
+        formData.append("path", `quotations/${filename}`);
+
+        const apiKey = import.meta.env.VITE_CLIENT_API_KEY;
+        const uploadResponse = await fetch(
+          `${baseUrl}/api/v1/user/enquiries/upload-pdf`,
+          {
+            method: "POST",
+            headers: {
+              "X-API-Key": apiKey,
+              "Authorization": `Bearer ${token || ""}`
+            },
+            body: formData
+          }
+        );
+
+        if (!uploadResponse.ok) {
+          const errorData = await uploadResponse.json().catch(() => null);
+          throw new Error(errorData?.detail || `Failed to upload PDF (${uploadResponse.status})`);
+        }
+
+        const uploadResult = await uploadResponse.json();
+        const pdfUrl = uploadResult.pdf_url;
+        console.log("PDF uploaded successfully, URL:", pdfUrl);
 
         if (token && targetEnq.id) {
           console.log("Updating database for enquiry_code:", targetEnq.id);
@@ -881,7 +904,7 @@ export function ProfilePage() {
                             <h4 className="font-semibold text-lg mt-1">{enq.title}</h4>
                           </div>
 
-                          <div className="flex items-center gap-3">
+                          {/* <div className="flex items-center gap-3">
                             <span className={cn(
                               "px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border",
                               enq.status === "Approved" && "bg-emerald-500/10 text-emerald-500 border-emerald-500/20",
@@ -890,7 +913,7 @@ export function ProfilePage() {
                             )}>
                               {enq.status}
                             </span>
-                          </div>
+                          </div> */}
                         </div>
 
                         <div className="grid sm:grid-cols-2 md:grid-cols-4 gap-4 text-xs text-ink/70 dark:text-paper/70">
@@ -1035,9 +1058,9 @@ export function ProfilePage() {
                       placeholder="Select Gifting For"
                       value={editForm.giftingFor}
                       options={[
-                        { label: "Internal Employee", value: "Internal Clients" },
-                        { label: "Clients / Customers", value: "External" },
-                        { label: "VIP / CEO", value: "Vip" },
+                        { label: "Internal Employee", value: "Internal Employee" },
+                        { label: "Clients / Customers", value: "Clients / Customers" },
+                        { label: "VIP / CEO", value: "VIP / CEO" },
                         { label: "Others", value: "Others" },
                       ]}
                       onChange={(val) => setEditForm((prev) => ({ ...prev, giftingFor: val }))}

@@ -10,7 +10,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { CustomDropdown } from "../components/common/CustomDropdown";
 import { EnquiryPDFTemplate, type EnquiryPDFData } from "../components/common/EnquiryPDFTemplate";
-import { supabase } from "../supabase";
 
 const enquirySchema = z.object({
   company: z.string().min(2, "Enter your company name"),
@@ -212,6 +211,7 @@ export function CartEnquiryModal({
   const [submitted, setSubmitted] = useState(false);
   const [isLibraryLoaded, setIsLibraryLoaded] = useState(false);
   const [enquiryData, setEnquiryData] = useState<EnquiryPDFData | null>(null);
+  const [uploadedPdfUrl, setUploadedPdfUrl] = useState<string | null>(null);
   const [profile, setProfile] = useState<{ name: string; email: string; phone: string } | null>(null);
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
@@ -272,26 +272,11 @@ export function CartEnquiryModal({
   const giftingForValue = watch("giftingFor") || "";
   const quantityValue = watch("quantity") || "";
 
-  const downloadPDF = async () => {
-    try {
-      const filename = enquiryData?.enquiryId
-        ? `Enquiry_${enquiryData.enquiryId}.pdf`
-        : `Enquiry_${Date.now()}.pdf`;
-
-      // Get the public URL from Supabase
-      const { data } = supabase.storage
-        .from("enquiry-pdfs")
-        .getPublicUrl(`enquiries/${filename}`);
-
-      if (data?.publicUrl) {
-        // Open or download the PDF
-        window.open(data.publicUrl, "_blank");
-      } else {
-        alert("PDF not found. Please try again.");
-      }
-    } catch (err) {
-      console.error("Error downloading PDF:", err);
-      alert("Failed to download PDF. Please try again.");
+  const downloadPDF = () => {
+    if (uploadedPdfUrl) {
+      window.open(uploadedPdfUrl, "_blank");
+    } else {
+      alert("PDF is still generating and uploading. Please try again in a moment.");
     }
   };
 
@@ -379,6 +364,7 @@ export function CartEnquiryModal({
 
   const generateAndUploadPDF = async (_pdfData: EnquiryPDFData, enquiryCode: string) => {
     try {
+      const token = localStorage.getItem("nexus_token");
       const element = document.getElementById("enquiry-pdf-content");
       if (!element) {
         console.error("PDF element not found");
@@ -396,6 +382,8 @@ export function CartEnquiryModal({
         html2canvas: {
           scale: 2,
           useCORS: true,
+          scrollY: 0,
+          scrollX: 0,
           onclone: (clonedDoc: Document) => {
             Array.from(clonedDoc.getElementsByTagName("style")).forEach((el) => {
               try {
@@ -425,32 +413,36 @@ export function CartEnquiryModal({
       const blob = pdf.output("blob");
       console.log("PDF generated successfully, size:", blob.size, "bytes");
 
-      // Upload to Supabase Storage
-      console.log("Uploading to Supabase bucket: enquiry-pdfs, path: enquiries/" + filename);
-      const { error, data: uploadData } = await supabase.storage
-        .from("enquiry-pdfs")
-        .upload(`enquiries/${filename}`, blob, {
-          contentType: "application/pdf",
-          upsert: true
-        });
+      // Upload to Backend (which uploads to Supabase Storage)
+      console.log("Uploading PDF through backend: enquiries/" + filename);
+      const formData = new FormData();
+      formData.append("file", blob, filename);
+      formData.append("path", `enquiries/${filename}`);
 
-      if (error) {
-        console.error("Supabase upload error:", error);
-        return;
+      const apiKey = import.meta.env.VITE_CLIENT_API_KEY;
+      const uploadResponse = await fetch(
+        `${API_BASE_URL}/api/v1/user/enquiries/upload-pdf`,
+        {
+          method: "POST",
+          headers: {
+            "X-API-Key": apiKey,
+            "Authorization": `Bearer ${token || ""}`
+          },
+          body: formData
+        }
+      );
+
+      if (!uploadResponse.ok) {
+        const errorData = await uploadResponse.json().catch(() => null);
+        throw new Error(errorData?.detail || `Failed to upload PDF (${uploadResponse.status})`);
       }
 
-      console.log("Upload successful:", uploadData);
-
-      // Get Public URL
-      const { data } = supabase.storage
-        .from("enquiry-pdfs")
-        .getPublicUrl(`enquiries/${filename}`);
-
-      const pdfUrl = data.publicUrl;
-      console.log("PDF public URL:", pdfUrl);
+      const uploadResult = await uploadResponse.json();
+      const pdfUrl = uploadResult.pdf_url;
+      console.log("PDF uploaded successfully, URL:", pdfUrl);
+      setUploadedPdfUrl(pdfUrl);
 
       // Update backend with PDF URL
-      const token = localStorage.getItem("nexus_token");
       if (token) {
         console.log("Updating database for enquiry_code:", enquiryCode);
         const updateResponse = await fetch(
@@ -620,9 +612,9 @@ export function CartEnquiryModal({
                 placeholder="Select Gifting For"
                 value={giftingForValue}
                 options={[
-                  { label: "Internal Employee", value: "Internal Clients" },
-                  { label: "Clients / Customers", value: "External" },
-                  { label: "VIP / CEO", value: "Vip" },
+                  { label: "Internal Employee", value: "Internal Employee" },
+                  { label: "Clients / Customers", value: "Clients / Customers" },
+                  { label: "VIP / CEO", value: "VIP / CEO" },
                   { label: "Others", value: "Others" },
                 ]}
                 onChange={(val) =>

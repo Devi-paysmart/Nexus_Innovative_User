@@ -100,6 +100,7 @@ export function CategoryGalleryPage() {
               description: p.description,
               image: (p.images && p.images[0]) || "/sus-mug.jpg",
               images: p.images || [],
+              custom_prod_id: p.custom_prod_id,
             }));
 
           setProducts(filteredProducts);
@@ -203,13 +204,20 @@ export function CategoryGalleryPage() {
                   <ProductCardImageCarousel
                     images={product.images || [product.image]}
                     alt={product.title}
-                    onClick={() => setSelected(product)}
+                    onClick={() => navigate(`/product/${product.id}`)}
                     aspectClassName="aspect-[4/3]"
                   />
                   <div className="flex flex-1 flex-col p-6">
-                    <h3 className="font-display text-xl text-ink dark:text-paper">
-                      {product.title}
-                    </h3>
+                    <div className="flex items-start justify-between gap-4">
+                      <h3 className="font-display text-xl text-ink dark:text-paper">
+                        {product.title}
+                      </h3>
+                      {product.custom_prod_id && (
+                        <span className="font-mono text-xs text-ink/40 dark:text-paper/40 flex-shrink-0 mt-1">
+                          {product.custom_prod_id}
+                        </span>
+                      )}
+                    </div>
                     <p className="mt-3 text-sm leading-relaxed text-ink/65 dark:text-paper/65 flex-1">
                       {product.description}
                     </p>

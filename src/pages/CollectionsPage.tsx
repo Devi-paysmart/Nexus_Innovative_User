@@ -22,7 +22,7 @@ export function CollectionsPage() {
   useEffect(() => {
     const fetchProducts = async () => {
       setFetching(true);
-      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
+      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
       const API_KEY = import.meta.env.VITE_CLIENT_API_KEY;
 
       try {
@@ -77,6 +77,7 @@ export function CollectionsPage() {
               return (
                 p.name.toLowerCase().includes(q) ||
                 p.description.toLowerCase().includes(q) ||
+                (p.custom_prod_id && p.custom_prod_id.toLowerCase().includes(q)) ||
                 catName.includes(q)
               );
             }
@@ -95,6 +96,7 @@ export function CollectionsPage() {
               images: p.images || [],
               categoryName: cat ? cat.name : "",
               categorySlug: catSlug,
+              custom_prod_id: p.custom_prod_id,
             };
           });
 
@@ -115,7 +117,7 @@ export function CollectionsPage() {
   return (
     <PageTransition>
       <div className="pt-32 pb-24">
-        <div className="mx-auto max-w-7xl px-6">
+        <div className="w-full px-8 lg:px-12">
           <SectionReveal>
             <p className="eyebrow mb-4">Our Collections</p>
             <h1 className="font-display text-4xl text-ink dark:text-paper lg:text-6xl">
@@ -128,8 +130,8 @@ export function CollectionsPage() {
           </SectionReveal>
 
           {loading ? (
-            <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {[1, 2, 3, 4, 5, 6].map((n) => (
+            <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
+              {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => (
                 <div
                   key={n}
                   className="w-full aspect-[4/5] rounded-3xl bg-ink/5 dark:bg-paper/5 animate-pulse"
@@ -167,7 +169,7 @@ export function CollectionsPage() {
               </div>
 
               <div className={cn(
-                "mt-12 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 transition-opacity duration-200",
+                "mt-12 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 transition-opacity duration-200",
                 fetching && "opacity-40"
               )}>
                 {products.length === 0 ? (
@@ -182,7 +184,7 @@ export function CollectionsPage() {
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.35, delay: (i % 3) * 0.05, ease: "easeOut" }}
                     >
-                      <Link to={`/collections/${product.categorySlug}`} className="group block">
+                      <Link to={`/product/${product.id}`} className="group block">
                         <motion.div whileHover={{ y: -4 }} className="overflow-hidden rounded-2xl shadow-luxe-sm h-full flex flex-col">
                           <ProductCardImageCarousel
                             images={product.images || [product.image]}
@@ -190,8 +192,11 @@ export function CollectionsPage() {
                             aspectClassName="aspect-[4/5]"
                           />
                           <div className="bg-paper p-4 dark:bg-ink-soft flex-1">
-                            <p className="text-xs text-gold-deep">{product.categoryName}</p>
-                            <p className="font-display text-lg text-ink dark:text-paper">{product.title}</p>
+                            <div className="flex items-center justify-between text-xs text-gold-deep">
+                              <span>{product.categoryName}</span>
+                              {product.custom_prod_id && <span className="font-mono text-ink/40 dark:text-paper/40">{product.custom_prod_id}</span>}
+                            </div>
+                            <p className="font-display text-lg text-ink dark:text-paper mt-1">{product.title}</p>
                           </div>
                         </motion.div>
                       </Link>
