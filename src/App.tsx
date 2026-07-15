@@ -26,6 +26,7 @@ import { QuotationPDFPage } from "./pages/QuotationPDFPage";
 import AuthPage from "./pages/AuthPage";
 import RegisterPage from "./pages/RegisterPage";
 import { ProductDetailsPage } from "./pages/ProductDetailsPage";
+import { PromotionalVideoPopup } from "./components/common/PromotionalVideoPopup";
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -85,6 +86,7 @@ function App() {
         <CartProvider>
           <BrowserRouter>
             <ScrollToTop />
+            <PromotionalVideoPopup />
             <Routes>
               <Route path="/quotation/:id" element={<QuotationPDFPage />} />
               <Route path="/signin" element={<AuthPage />} />
